@@ -74,8 +74,20 @@ class ActLayer(Layer):
         return self.output
 
     def backward_pass(self, G, eta):
-        print(np.shape(self.input))
-        print(np.shape(G))
+        #print(np.shape(self.input))
+        #print(np.shape(G))
+        print("G: ", G)
         tmpG = G
-        tmpG[self.input <= 0] = 0
+        tmpG[self.input < 0] = 0
         return tmpG
+
+class SoftMaxLayer(Layer):
+
+    def __init__(self):
+
+    def forward_pass(self, input_data):
+        self.input = input_data
+        self.output = soft_max(input_data)
+
+    def backward_pass(self):
+        # What is gradient of soft max?
