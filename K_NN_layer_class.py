@@ -29,38 +29,54 @@ class FCLayer(Layer):
         self.gradb = []
         self.mu = mu
         self.sig = sig
+        self.weights = []
+        self.biases = []
 
         if W is None:
-            self.weights = random.normal(loc=mu,scale=sig,size=(self.N,self.m))
+            self.W = random.normal(loc=mu,scale=sig,size=(self.N,self.m))
         else:
-            self.weights = W
+            self.W = W
 
         if b is None:
-            self.bias = np.zeros((self.N,1))
+            self.b = np.zeros((self.N,1))
         else:
-            self.bias = b
+            self.b = b
+
+        self.weights.append(self.W)
+        self.biases.append(self.b)
 
     def forward_pass(self, input_data):
         self.input = input_data
-        self.output = np.dot(self.weights,input_data) + self.bias
+        self.output = np.dot(self.W,input_data) + self.b
         return self.output
     
     def backward_pass(self, G, eta):
+
+        """ This here pass has a packpropagated gradient for dJdW which originates both from the hidden layer
+         and from the regularization term. 
+         We also compute and update the W and b parameter here """
+        
+        self.compute_grads(G)        
+        self.update_pars(eta)
+
+        # Return gradient to pass on upwards
+        return np.dot(self.W.T, G)
+    
+    def compute_grads(self, G):
+        """ These gradients are under the assumption of mini batch gradient descent being used
+            and cross entropy. Not sure that these are strict necessities """
         dldW = np.dot(G, self.input.T) / self.N
         dldb = np.sum(G, axis=1) / self.N
 
-        dJdW = dldW + 2 * self.lamda * self.weights
+        dJdW = dldW + 2 * self.lamda * self.W
         dJdb = np.reshape(dldb,(len(dldb),1))
 
         self.gradW.append(dJdW)
         self.gradb.append(dJdb)
 
-        G = np.dot(self.weights.T, G)
-        
-        self.weights -= eta * dJdW
-        self.bias -= eta * dJdb
-        
-        return G
+    def update_pars(self, eta):
+        self.W -= eta * self.gradW[-1]
+        self.b -= eta * self.gradb[-1]
 
 class ActLayer(Layer):
 
@@ -68,7 +84,7 @@ class ActLayer(Layer):
         self.act_func = act_func
 
     def forward_pass(self, input_data):
-        self.input = input_data 
+        self.input = input_data
         self.output = self.act_func(self.input)
         # Apply batch normalization here
         return self.output
@@ -80,14 +96,3 @@ class ActLayer(Layer):
         tmpG = G
         tmpG[self.input < 0] = 0
         return tmpG
-
-class SoftMaxLayer(Layer):
-
-    def __init__(self):
-
-    def forward_pass(self, input_data):
-        self.input = input_data
-        self.output = soft_max(input_data)
-
-    def backward_pass(self):
-        # What is gradient of soft max?

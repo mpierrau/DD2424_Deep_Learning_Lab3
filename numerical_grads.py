@@ -26,15 +26,16 @@ def testGrads(X, Y, nLayers, layerDims, lamda, h, sampleSize, dataDim, nBatch=10
 
     testNet = Network()
 
-    for i in range(nLayers):
+    for i in range(nLayers-1):
         testNet.add_layer(FCLayer(layerDims[i][0],layerDims[i][1], mu=mu, sig=sig, lamda=lamda))
         testNet.add_layer(ActLayer(relu))
+    
+    testNet.add_layer(FCLayer(layerDims[nLayers-1][0],layerDims[nLayers-1][1],mu=mu,sig=sig,lamda=lamda))
 
     testNet.set_cost(L2_cost)
     testNet.set_loss(cross_entropy, cross_entropy_prime)
 
     P = testNet.forward_prop(XbatchRedDim)
-    print(testNet.input)
     testNet.backward_prop(P,0)
 
     print("Computing grads for dim: %d , N: %d, dimRed=%s" % (d,N,redDim))
