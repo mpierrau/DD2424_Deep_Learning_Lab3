@@ -24,8 +24,6 @@ def cross_entropy(Y,P,nBatch,oneHotEnc=True):
     N = np.shape(Y)[1]
     
     batches = int(N/nBatch)
-    print(Y)
-    print(np.shape(P))
     
     entrSum = 0
     if(oneHotEnc):

@@ -271,6 +271,5 @@ class Network:
     
 def soft_max(input_data):
     #Standard definition of the softmax function
-    print("Softmax input_data shape: ", np.shape(input_data))
     S = np.exp(input_data) / np.sum(np.exp(input_data), axis=0)
     return S

@@ -30,7 +30,7 @@ redDim = 20
 
 grads = net.computeGradsNum(X[0],Y[0],0)
 
-testGrads(X[0],Y[0],2,[[m,redDim],[k,m]],0,1e-5,N,redDim,redDim=True)
+# testGrads(X[0],Y[0],2,[[m,redDim],[k,m]],0,1e-5,N,redDim,redDim=True)
 
 net.forward_prop(X[0])
 
