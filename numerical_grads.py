@@ -6,7 +6,7 @@ from K_NN_layer_class import FCLayer , ActLayer
 
 """ Test function for numerical gradient computation """
 
-def testGrads(X, Y, nLayers, layerDims, lamda, h, sampleSize, dataDim, nBatch=100, mu=0, sig=0.01, redDim=False, fast=True, debug=False):
+def testGrads(X, Y, nLayers, layerDims, lamda, h, sampleSize, dataDim, nBatch=100, mu=0, sig=0.01, redDim=False, fast=True, debug=False, printAll=True):
     # Compares results of analytically computed
     # gradients to numerical approximations to
     # ensure correctness.
@@ -35,16 +35,16 @@ def testGrads(X, Y, nLayers, layerDims, lamda, h, sampleSize, dataDim, nBatch=10
     testNet.set_cost(L2_cost)
     testNet.set_loss(cross_entropy, cross_entropy_prime)
 
-    P = testNet.forward_prop(XbatchRedDim)
-    testNet.backward_prop(P,0)
+    testNet.forward_prop(XbatchRedDim)
+    testNet.backward_prop(testNet.P[-1],0)
 
     print("Computing grads for dim: %d , N: %d, dimRed=%s" % (d,N,redDim))
     print("Using %s algorithm..." % ("fast but inaccurate" if fast else "slow but accurate"))
     
     if fast:
-        W_grad_num , b_grad_num = testNet.computeGradsNum(XbatchRedDim,YbatchRedDim,h,nBatch)
+        W_grad_num , b_grad_num = testNet.computeGradsNum(XbatchRedDim,YbatchRedDim,lamda,h,nBatch)
     else:
-        W_grad_num , b_grad_num = testNet.computeGradsNumSlow(XbatchRedDim,YbatchRedDim,h,nBatch)
+        W_grad_num , b_grad_num = testNet.computeGradsNumSlow(XbatchRedDim,YbatchRedDim,lamda,h,nBatch)
 
     gradWList = []
     gradbList = []
@@ -69,13 +69,17 @@ def testGrads(X, Y, nLayers, layerDims, lamda, h, sampleSize, dataDim, nBatch=10
     print("Largest relative error: %e for grad[%s]." % (np.max(errs),np.argmax(errs)))
     if np.max(errs) > 1e-3: print("Large errors in gradient!")
 
+    if printAll:
+        print(errs)
+        print(grads)
+
     return errs , grads
 
 
 def relErr(Wan,Wnum,eps=1e-10):
-    # Computes relative error between Jacobians Wan and Wnum
+    # Computes mean relative error between Jacobians Wan and Wnum
     return np.mean(np.abs(Wan - Wnum)/np.maximum(eps,(np.abs(Wan) + np.abs(Wnum))))
 
 def maxErr(Wan,Wnum,eps=1e-10):
-    # Computes absolute error between Jacobians Wan and Wnum
+    # Computes mean absolute error between Jacobians Wan and Wnum
     return np.mean(np.abs(Wan-Wnum))

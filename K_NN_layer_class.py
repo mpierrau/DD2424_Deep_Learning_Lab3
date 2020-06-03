@@ -92,7 +92,9 @@ class ActLayer(Layer):
     def backward_pass(self, G, eta):
         #print(np.shape(self.input))
         #print(np.shape(G))
+        print("Input: ", self.input)
         print("G: ", G)
         tmpG = G
-        tmpG[self.input < 0] = 0
+        tmpG[self.input <= 0] = 0
+        print("TmpG: ", tmpG)
         return tmpG

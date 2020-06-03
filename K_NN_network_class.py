@@ -142,7 +142,8 @@ class Network:
         self.forward_prop(X)
         l = self.compute_loss(Y, self.P[-1], nBatch)
         c = self.compute_cost(l,lamda)
-
+        print("Initial cost: %s" % c)
+        #print("Initial P: ", self.P[-1])
         test_net = Network()
         FCidx = []
 
@@ -151,43 +152,45 @@ class Network:
             if type(layer) == FCLayer:
                 tmpW = copy.deepcopy(layer.W)
                 tmpb = copy.deepcopy(layer.b)
-
                 test_net.add_layer(FCLayer(layer.N, layer.m, layer.mu, layer.sig, layer.lamda, tmpW, tmpb))
                 FCidx.append(k)
             else:
                 test_net.add_layer(layer)
         
             k += 1
-        
+        print("FCidx: ", FCidx)
         test_net.set_cost(self.cost_func)
         test_net.set_loss(self.loss_func,self.loss_prime_func)
 
-        for j in range(len(self.biases)):
-            grads_b.append(np.zeros(len(self.biases[j])))
+        for j in range(len(test_net.biases)):
+            print("computing grad for b[%d]" % j)
+            grads_b.append(np.zeros(len(test_net.biases[j])))
             
-            for i in range(len(self.biases[j])):
+            for i in range(len(test_net.biases[j])):
                 test_net.layers[FCidx[j]].b[i] += h
-                
                 test_net.forward_prop(X)
-                l2 = test_net.compute_loss(Y,self.P[-1],nBatch)
+                l2 = test_net.compute_loss(Y,test_net.P[-1],nBatch)
                 c2 = test_net.compute_cost(l2,lamda)
+                #print("i = %d, FCidx[%d]=%d" % (i,j,FCidx[j]))
+                #print("layer[%d].b = %s" % (FCidx[j],test_net.layers[FCidx[j]].b))
+                #print("c2: ", c2)
 
                 grads_b[j][i] = (c2-c) / h
-
+                print("New grad_b[%d][%d] = %f" % (j,i,grads_b[j][i]))
                 #reset entries for next pass
                 test_net.layers[FCidx[j]].b[i] -= h
         
-        for k in range(len(self.weights)):
+        for k in range(len(test_net.weights)):
             print("computing grad for W[%d]" % k)
 
-            grads_W.append(np.zeros(np.shape(self.weights[k])))
+            grads_W.append(np.zeros(np.shape(test_net.weights[k])))
 
             for i in range(np.shape(grads_W[k])[0]):
                 for j in range(np.shape(grads_W[k])[1]):
                     test_net.layers[FCidx[k]].W[i,j] += h
                     
                     test_net.forward_prop(X)
-                    l2 = test_net.compute_loss(Y,self.P[-1],nBatch)
+                    l2 = test_net.compute_loss(Y,test_net.P[-1],nBatch)
                     c2 = test_net.compute_cost(l2,lamda)
 
                     grads_W[k][i,j] = (c2-c) / h
