@@ -39,7 +39,7 @@ class FCLayer(Layer):
             self.sig = sig
 
         if W is None:
-            self.W = random.normal(loc=mu,scale=sig,size=(self.nRows,self.nCols))
+            self.W = random.normal(loc=self.mu,scale=self.sig,size=(self.nRows,self.nCols))
         else:
             self.W = W
 
@@ -77,7 +77,7 @@ class FCLayer(Layer):
         dldW = np.dot(G, self.input.T)
         dldb = np.sum(G, axis=1).reshape((len(G),1))
         
-        dJdW = (dldW + 2 * self.lamda * self.W) / self.batchSize
+        dJdW = (dldW / self.batchSize) + 2 * self.lamda * self.W
         dJdb = dldb / self.batchSize
 
         self.gradW.append(dJdW)
@@ -101,11 +101,8 @@ class ActLayer(Layer):
         return self.output
 
     def backward_pass(self, G, eta):
-        #print(np.shape(self.input))
-        #print(np.shape(G))
-        #print("Input: ", self.input)
-        #print("G: ", G)
+        
         tmpG = G
         tmpG[self.input <= 0] = 0   
-        #print("TmpG: ", tmpG)
+
         return tmpG

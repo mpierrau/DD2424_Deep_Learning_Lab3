@@ -39,10 +39,10 @@ def testGrads(X, Y, nLayers, layerDims, lamda, h, nBatch=100, mu=0, sig=0.01, fa
     anNet.forward_prop(X)
     print("Computing loss...")
     anNet.compute_loss(Y, anNet.P[-1],nBatch)
-    print("Computing error...")    
-    error = anNet.loss_prime_func(Y, anNet.P[-1])
+    print("Computing cost...")
+    anNet.compute_cost(anNet.loss[-1],lamda)
     print("Backward prop...")
-    anNet.backward_prop(error,eta)
+    anNet.backward_prop(Y,eta)
 
     gradWList = []
     gradbList = []
@@ -160,8 +160,6 @@ def computeGradsNumSlow(net, X, Y, lamda, h=1e-5, nBatch=100):
     
     grads_W = list()
     grads_b = list()
-
-    N = X.shape[1]
 
     test_net = Network()
     FCidx = []

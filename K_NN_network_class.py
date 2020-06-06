@@ -8,6 +8,7 @@ from K_NN_layer_class import FCLayer
 
 class Network:
     def __init__(self):
+        self.input = None
         self.layers = []
         self.loss_func = None
         self.loss_prime_func = None
@@ -17,7 +18,7 @@ class Network:
         self.accuracy = []
         self.weights = []
         self.biases = []
-        self.P = []
+        self.P = None
 
     def add_layer(self, layer):
         layerIdx = len(self.layers)
@@ -39,21 +40,29 @@ class Network:
     def forward_prop(self, input_data):
         """ Runs data through network and softmax 
             (should) returns matrix P of dimension k x N """
-        
-        output = input_data
+        self.input = input_data
 
+        output = input_data
+        
         for layer in self.layers:
             output = layer.forward_pass(output)
         
         output = softMax(output)
-        self.P.append(output)
 
-    def backward_prop(self, err, eta):
-        input_error = err
+        self.P = output
+
+    def backward_prop(self, input_labels, eta):
+
+        input_error = self.loss_prime_func(input_labels, self.P)
         for layer in reversed(self.layers):
             input_error = layer.backward_pass(input_error,eta)
+            
+    def fit(self, X, Y, nBatch, n_cycles, n_s, eta, rec_every, lamda):
+        """ X = [Xtrain, Xval] 
+            Y = [Ytrain, Yval]"""
 
-    def fit(self, Xtrain, Ytrain, ytrain, nBatch, n_cycles, n_s, eta, rec_every, lamda):
+        Xtrain , Xval = X
+        Ytrain , Yval = Y
         
         self.n_cycles = n_cycles
         eta_min = eta[0]
@@ -68,12 +77,11 @@ class Network:
         t = 0
 
         for epoch in range(n_epochs):
-            print("Epoch ", epoch)
+            print("Epoch %d of %d" % (epoch,n_epochs))
             # Shuffle batches in each epoch
             random.shuffle(index)
             Xtrain = Xtrain[:,index]
             Ytrain = Ytrain[:,index]
-            ytrain = ytrain[index]
 
             epoch_steps = steps_per_ep if (((tot_steps - t) // steps_per_ep) > 0 ) else (tot_steps % steps_per_ep) 
 
@@ -92,17 +100,14 @@ class Network:
                 self.forward_prop(Xbatch)
                 
                 if (step % rec_every) == 0:
-                    tmp_loss = self.compute_loss(Ybatch, self.P[-1], nBatch)
+                    tmp_loss = self.compute_loss(Ybatch, self.P, nBatch)
                     tmp_cost = self.compute_cost(tmp_loss,lamda)
                     self.loss.append(tmp_loss)
                     self.cost.append(tmp_cost)
 
-                error = self.loss_prime_func(Ybatch, self.P[-1])
-
-                self.backward_prop(error,step_eta)
+                self.backward_prop(Ybatch,step_eta)
 
     def compute_loss(self, Y, P, nBatch):
-
         l = self.loss_func(Y,P,nBatch)
 
         self.loss.append(l)
@@ -127,7 +132,7 @@ class Network:
             
             self.forward_prop(tmpX)
             
-            guess = np.argmax(self.P[-1],axis=0)
+            guess = np.argmax(self.P,axis=0)
             n_correct = sum(guess == tmpy)
             
             tmp_accuracy.append(n_correct/N)

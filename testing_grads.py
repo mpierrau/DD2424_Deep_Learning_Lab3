@@ -19,11 +19,10 @@ mu = 0
 
 
 errs, Wgrads, bgrads, anNet, numNet = testGrads(X,Y,nLayers=2,layerDims=[[m,redDim],[k,m]],
-                        lamda=0.1,h=1e-5,
+                        lamda=lamda,h=1e-5,
                         nBatch=nBatch,fast=False,printAll=False)
-
-numNet.compute_loss(Y,numNet.P[-1],1)
-anNet.loss[-1]
 
 errs
 
+anNet.layers[0].gradW[0][0]
+numNet.layers[0].gradW[0][0]

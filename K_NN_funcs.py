@@ -7,13 +7,18 @@ def relu(input_data):
     return input_data
 
 def L2_cost(net,loss,lamda):
-    weights_sum = 0
     
+    N = net.input.shape[1]
+
+    weights_sum = 0
+
     for W in net.weights:
         Wsum = np.sum(W**2)
         weights_sum += Wsum
     
-    cost = loss + lamda * weights_sum
+    L2_reg = lamda * weights_sum / N
+    
+    cost = loss + L2_reg
 
     return cost
 
@@ -45,6 +50,6 @@ def cross_entropy(Y,P,nBatch,oneHotEnc=True):
     return entrSum
 
 def reduceDims(X,Y,redDim,redN):
-    XbatchRedDim = X[0:redDim,0:redN]
-    YbatchRedDim = Y[:,0:redN]
+    XbatchRedDim = X[:redDim,:redN]
+    YbatchRedDim = Y[:,:redN]
     return XbatchRedDim , YbatchRedDim
