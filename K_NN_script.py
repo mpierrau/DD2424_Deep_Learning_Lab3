@@ -8,14 +8,16 @@ from numerical_grads import testGrads , relErr , maxErr
 X , Y , y = loadPreProcData('data_batch_1','data_batch_2','data_batch_3')
 
 doRed = True
-redDim = 10
-redN = 50
+redDim = 20
+redN = 4
+
 """
 if doRed == True:
     X[0] = X[0][:redDim,:redN]
     Y[0] = Y[0][:,:redN]
     y[0] = y[0][:redN]
 """
+
 d , N = np.shape(X[0])
 k = np.shape(Y[0])[0]
 m = 50
@@ -67,20 +69,7 @@ for layer in net.layers:
 
 print(relErr())
 """
-errs, grads = testGrads(X[0],Y[0],nLayers=2,layerDims=[[m,redDim],[k,m]],
-                        lamda=0,h=1e-5,
-                        sampleSize=redN,dataDim=redDim,
-                        nBatch=10,
-                        redDim=True,printAll=False)
 
-"""
-for i in np.arange(0,2,1):
-    for j in range(len(grads[i])):
-        print("Analytical Grads [%d][%d]:" % (i,j))
-        print(grads[i][j])
-        print("Numerical Grads [%d][%d]:" % (i+2,j))
-        print(grads[i + 2][j])
-"""
 #net.forward_prop(X[0])
 
 #net.fit(X[0], Y[0], y[0], nBatch=100, n_cycles=1, n_s=500, eta=[1e-1,1e-5], rec_every=10, lamda=lamda)

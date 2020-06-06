@@ -9,11 +9,13 @@ def relu(input_data):
 def L2_cost(net,loss,lamda):
     weights_sum = 0
     
-    for layer in net.layers:
-        if type(layer) == FCLayer:
-            weights_sum += np.sum(layer.W**2)
+    for W in net.weights:
+        Wsum = np.sum(W**2)
+        weights_sum += Wsum
+    
+    cost = loss + lamda * weights_sum
 
-    return loss + lamda*weights_sum
+    return cost
 
 def cross_entropy_prime(Y,P):
     return -(Y-P)
@@ -22,23 +24,27 @@ def cross_entropy(Y,P,nBatch,oneHotEnc=True):
     # Compute Cross Entropy between Y and P
 
     N = np.shape(Y)[1]
-    
     batches = int(N/nBatch)
     
-    entrSum = 0
     if(oneHotEnc):
-        for i in range(batches):
-            startIdx = i*nBatch
-            endIdx = startIdx + nBatch
-            Ybatch = Y[:,startIdx:endIdx]
-            Pbatch = P[:,startIdx:endIdx]
-            entrSum += np.trace(-np.log(np.dot(Ybatch.T,Pbatch)))
+        entrFunc = lambda Y,P : np.trace(-np.log(np.dot(Y.T,P)))
     else:
-        for i in range(batches):
-            startIdx = i*nBatch
-            endIdx = startIdx + nBatch
-            Ybatch = Y[:,startIdx:endIdx]
-            Pbatch = P[:,startIdx:endIdx]
-            entrSum += np.trace(-np.dot(Ybatch.T,np.log(Pbatch)))
+        entrFunc = lambda Y,P : np.trace(-np.dot(Y.T,np.log(P)))    
+    
+    entrSum = 0
+    for i in range(batches):
+        startIdx = i*nBatch
+        endIdx = startIdx + nBatch
+        Ybatch = Y[:,startIdx:endIdx]
+        Pbatch = P[:,startIdx:endIdx]
+
+        entrSum += entrFunc(Ybatch,Pbatch)
+    
+    entrSum /= N
 
     return entrSum
+
+def reduceDims(X,Y,redDim,redN):
+    XbatchRedDim = X[0:redDim,0:redN]
+    YbatchRedDim = Y[:,0:redN]
+    return XbatchRedDim , YbatchRedDim
