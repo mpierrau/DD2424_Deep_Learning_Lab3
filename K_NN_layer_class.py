@@ -73,7 +73,9 @@ class FCLayer(Layer):
     def compute_grads(self, G):
         """ These gradients are under the assumption of mini batch gradient descent being used
             and cross entropy. Not sure that these are strict necessities """
-        
+        #print("We are using this input as X when G@X.T for computing grads for layer %d: " % self.layerIdx)
+        #print(self.input)
+
         dldW = np.dot(G, self.input.T)
         dldb = np.sum(G, axis=1).reshape((len(G),1))
         

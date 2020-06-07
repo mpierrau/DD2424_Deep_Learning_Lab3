@@ -94,10 +94,10 @@ def preProc(X):
     #from sklearn import preprocessing
     #X = preprocessing.normalize(X)
     X = X/255
-    Xmean = np.mean(X,1)
-    Xstd = np.std(X,1)
-    X = X - Xmean[:,None]
-    X = X / Xstd[:,None]
+    #Xmean = np.mean(X,1)
+    #Xstd = np.std(X,1)
+    #X = X - Xmean[:,None]
+    #X = X / Xstd[:,None]
     #X = X + np.abs(np.min(X,1))[:,None]
     #X = X / np.max(X,1)[:,None]"""
     return X

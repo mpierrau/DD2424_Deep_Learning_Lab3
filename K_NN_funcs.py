@@ -49,7 +49,8 @@ def cross_entropy(Y,P,nBatch,oneHotEnc=True):
 
     return entrSum
 
-def reduceDims(X,Y,redDim,redN):
+def reduceDims(X,Y,y,redDim,redN):
     XbatchRedDim = X[:redDim,:redN]
     YbatchRedDim = Y[:,:redN]
-    return XbatchRedDim , YbatchRedDim
+    ybatchRedDim = y[:redN]
+    return XbatchRedDim , YbatchRedDim , ybatchRedDim

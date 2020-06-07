@@ -1,49 +1,74 @@
 """ Trying to replicate results from lab 2 """
 
 import numpy as np
-from data_handling import loadPreProcData , loadBatch
+from data_handling import loadPreProcData , loadBatch , loadAllFiles , loadTestFiles
 from numerical_grads import testGrads , relErr
 from K_NN_funcs import reduceDims , relu , cross_entropy , cross_entropy_prime , L2_cost
 from K_NN_network_class import Network
 from K_NN_layer_class import FCLayer , ActLayer
 import matplotlib.pyplot as plt
 
-X , Y , y = loadPreProcData('data_batch_1','data_batch_2','data_batch_3')
+#X , Y , y = loadPreProcData('data_batch_1','data_batch_2','data_batch_3')
 
-d , N = np.shape(X[0])
-k = np.shape(Y[0])[0]
+training_data , validation_data = loadAllFiles(valSize=1000)
+test_data = loadTestFiles()
 
-redDim = 10
-redN = 5
+Xin = [training_data[0],validation_data[0]]
+Yin = [training_data[1],validation_data[1]]
+yin = [training_data[2],validation_data[2]]
 
-X, Y = reduceDims(X[0], Y[0], redDim, redN)
+Xtest = test_data[0]
+ytest = test_data[2]
 
+d , N = np.shape(Xin[0])
+k = np.shape(Yin[0])[0]
 
-m = 50
-lamda = 0
-mu = 0
+#redDim = d
+#redN = N
 
-d = redDim
-N = redN
+#Xtrain , Ytrain , ytrain = reduceDims(X[0], Y[0], y[0], redDim, redN)
+#Xval , Yval , yval = reduceDims(X[1], Y[1], y[1], redDim, redN)
 
-nBatch = N
+#Xtest = X[2]
+#Ytest = Y[2]
+#ytest = y[2]
+
+#Xin = [Xtrain, Xval]
+#Yin = [Ytrain, Yval]
+#yin = [ytrain, yval]
+
+#d = redDim
+#N = redN
+
+recPerEp = 10
+
+nLayers = 1
+nBatch = 100
+cycles = 4
+eta = [1e-5, 1e-2]
+lamda = 1.73e-5
+
 batchSize = int(d/nBatch)
-cycles = 2
-n_s = 100
-#n_s = int(2*np.floor(N/nBatch))
-eta = [1e-5, 1e-3]
-net = Network()
+n_s = int(2*np.floor(N/nBatch))
 
-net.add_layer(FCLayer(input_size=m,output_size=d,mu=0))
-net.add_layer(ActLayer(relu))
-net.add_layer(FCLayer(input_size=k,output_size=m,mu=0))
+layerDims = [50]
+
+net = Network(lamda,eta,cycles,n_s,nBatch)
+net.build_layers(d,k,layerDims,relu)
 
 net.set_loss(cross_entropy, cross_entropy_prime)
 net.set_cost(L2_cost)
 
-net.fit(X,Y,y[0],nBatch,cycles,n_s,eta,10,lamda)
+net.fit(Xin,Yin,yin,recPerEp)
 
-plt.plot(np.arange(len(net.cost)),net.cost)
+plt.plot(np.arange(len(net.cost["Training"])),net.cost["Training"],label="Training")
+plt.plot(np.arange(len(net.cost["Validation"])),net.cost["Validation"],label="Validation")
+plt.legend()
+
 plt.show()
 
-net.accuracy
+
+plt.plot(np.arange(len(net.accuracy["Training"])),net.accuracy["Training"],label="Training")
+plt.plot(np.arange(len(net.accuracy["Validation"])),net.accuracy["Validation"],label="Validation")
+plt.legend()
+plt.show()

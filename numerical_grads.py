@@ -6,7 +6,7 @@ from K_NN_layer_class import FCLayer , ActLayer
 
 """ Test function for numerical gradient computation """
 
-def testGrads(X, Y, nLayers, layerDims, lamda, h, nBatch=100, mu=0, sig=0.01, fast=True, debug=False, printAll=True, eta=1e-4):
+def testGrads(X, Y, layerDims, lamda, h, nBatch=100, mu=0, sig=0.01, fast=True, debug=False, printAll=True, eta=1e-4):
     # Compares results of analytically computed
     # gradients to numerical approximations to
     # ensure correctness.
@@ -15,32 +15,25 @@ def testGrads(X, Y, nLayers, layerDims, lamda, h, nBatch=100, mu=0, sig=0.01, fa
     # dataDim is used for dimensionality reduction (how many dimensions to consider)
 
 
-    N = np.shape(Y)[1]
+    N , k = np.shape(Y)
     d = np.shape(X)[0]
 
     X = X[0:d,0:N]
     Y = Y[:,0:N]
 
-    anNet = Network()
     print("Building anNet : \n")
-    for i in range(nLayers-1):
-        print("Adding FCLayer %d with dims : (%d,%d)" % (i, layerDims[i][0],layerDims[i][1]))
-        anNet.add_layer(FCLayer(layerDims[i][0],layerDims[i][1], mu=mu, sig=sig, lamda=lamda))
-        print("Adding Relu layer")
-        anNet.add_layer(ActLayer(relu))
-    
-    print("Adding FCLayer %d with dims : (%d,%d)" % (nLayers-1, layerDims[-1][0],layerDims[-1][1]))
-    anNet.add_layer(FCLayer(layerDims[-1][0],layerDims[-1][1],mu=mu,sig=sig,lamda=lamda))
 
+    anNet = Network(lamda,eta,1,1,nBatch)
+    anNet.build_layers(d,k,layerDims,relu)
     anNet.set_cost(L2_cost)
     anNet.set_loss(cross_entropy, cross_entropy_prime)
 
     print("Forward prop...")
     anNet.forward_prop(X)
     print("Computing loss...")
-    anNet.compute_loss(Y, anNet.P[-1],nBatch)
+    anNet.compute_loss(Y, anNet.P,nBatch,"Training")
     print("Computing cost...")
-    anNet.compute_cost(anNet.loss[-1],lamda)
+    anNet.compute_cost(anNet.loss["Training"][-1],lamda,"Training")
     print("Backward prop...")
     anNet.backward_prop(Y,eta)
 
@@ -88,9 +81,8 @@ def computeGradsNum(net, X, Y, lamda, h=1e-5, nBatch=100):
         grads_W = list()
         grads_b = list()
         print("Copying network...")
-        test_net = Network()
+        test_net = Network(lamda,1e-4,1,1,nBatch)
         FCidx = []
-        N = X.shape[1]
 
         for k, layer in enumerate(net.layers):
             if type(layer) == FCLayer:
@@ -108,8 +100,10 @@ def computeGradsNum(net, X, Y, lamda, h=1e-5, nBatch=100):
 
         print("Computing initial cost:")
         test_net.forward_prop(X)
-        l = test_net.compute_loss(Y, test_net.P[-1], nBatch)
-        c = test_net.compute_cost(l,lamda)
+        test_net.compute_loss(Y, test_net.P, nBatch,"Training")
+        test_net.compute_cost(test_net.loss["Training"][-1],lamda,"Training")
+        c = test_net.cost["Training"][-1]
+
         print("Initial cost: %s" % c)
 
         for j in range(len(test_net.biases)):
@@ -119,14 +113,11 @@ def computeGradsNum(net, X, Y, lamda, h=1e-5, nBatch=100):
             for i in range(len(test_net.biases[j])):
                 test_net.layers[FCidx[j]].b[i] += h
                 test_net.forward_prop(X)
-                l2 = test_net.compute_loss(Y,test_net.P[-1],nBatch)
-                c2 = test_net.compute_cost(l2,lamda)
-                #print("i = %d, FCidx[%d]=%d" % (i,j,FCidx[j]))
-                #print("layer[%d].b = %s" % (FCidx[j],test_net.layers[FCidx[j]].b))
-                #print("c2: ", c2)
+                test_net.compute_loss(Y,test_net.P,nBatch,"Training")
+                test_net.compute_cost(test_net.loss["Training"][-1],lamda,"Training")
+                c2 = test_net.cost["Training"][-1]
 
                 grads_b[j][i][0] = (c2-c) / (h)
-                #print("New grad_b[%d][%d] = %f" % (j,i,grads_b[j][i]))
                 #reset entries for next pass
                 test_net.layers[FCidx[j]].b[i] -= h
 
@@ -143,8 +134,10 @@ def computeGradsNum(net, X, Y, lamda, h=1e-5, nBatch=100):
                     test_net.layers[FCidx[k]].W[i,j] += h
                     
                     test_net.forward_prop(X)
-                    l2 = test_net.compute_loss(Y,test_net.P[-1],nBatch)
-                    c2 = test_net.compute_cost(l2,lamda)
+                    test_net.compute_loss(Y,test_net.P,nBatch,"Training")
+                    test_net.compute_cost(test_net.loss["Training"][-1],lamda,"Training")
+                    
+                    c2 = test_net.cost["Training"][-1]
 
                     grads_W[k][i,j] = (c2-c) / (h)
                     
@@ -161,7 +154,7 @@ def computeGradsNumSlow(net, X, Y, lamda, h=1e-5, nBatch=100):
     grads_W = list()
     grads_b = list()
 
-    test_net = Network()
+    test_net = Network(lamda,1e-4,1,1,nBatch)
     FCidx = []
 
     for k, layer in enumerate(net.layers):
@@ -184,15 +177,19 @@ def computeGradsNumSlow(net, X, Y, lamda, h=1e-5, nBatch=100):
             test_net.layers[FCidx[j]].b[i] -= h
             
             test_net.forward_prop(X)
-            l1 = test_net.compute_loss(Y,test_net.P[-1],nBatch)
-            c1 = test_net.compute_cost(l1,lamda)
+            test_net.compute_loss(Y,test_net.P,nBatch,"Training")
+            test_net.compute_cost(test_net.loss["Training"][-1],lamda,"Training")
+
+            c1 = test_net.cost["Training"][-1]
 
             test_net.layers[FCidx[j]].b[i] += 2*h
             
             test_net.forward_prop(X)
-            l2 = test_net.compute_loss(Y,test_net.P[-1],nBatch)
-            c2 = test_net.compute_cost(l2,lamda)
+            test_net.compute_loss(Y,test_net.P,nBatch,"Training")
+            test_net.compute_cost(test_net.loss["Training"][-1],lamda,"Training")
 
+            c2 = test_net.cost["Training"][-1]
+            
             grads_b[j][i][0] = (c2-c1) / (2*h)
 
             #reset entries for next pass
@@ -210,14 +207,18 @@ def computeGradsNumSlow(net, X, Y, lamda, h=1e-5, nBatch=100):
                 test_net.layers[FCidx[k]].W[i,j] -= h
                 
                 test_net.forward_prop(X)
-                l1 = test_net.compute_loss(Y,test_net.P[-1],nBatch)
-                c1 = test_net.compute_cost(l1,lamda)
+                test_net.compute_loss(Y,test_net.P,nBatch,"Training")
+                test_net.compute_cost(test_net.loss["Training"][-1],lamda,"Training")
+
+                c1 = test_net.cost["Training"][-1]
 
                 test_net.layers[FCidx[k]].W[i,j] += 2*h
                 
                 test_net.forward_prop(X)
-                l2 = test_net.compute_loss(Y,test_net.P[-1],nBatch)
-                c2 = test_net.compute_cost(l2,lamda)
+                test_net.compute_loss(Y,test_net.P,nBatch,"Training")
+                test_net.compute_cost(test_net.loss["Training"][-1],lamda,"Training")
+
+                c2 = test_net.cost["Training"][-1]
 
                 grads_W[k][i,j] = (c2-c1) / (2*h)
                 
