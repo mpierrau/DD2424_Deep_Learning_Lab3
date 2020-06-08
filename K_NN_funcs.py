@@ -11,8 +11,9 @@ def L2_cost(net,loss,lamda):
     N = net.input.shape[1]
 
     weights_sum = 0
+    weights = net.get_weights()
 
-    for W in net.weights:
+    for W in weights:
         Wsum = np.sum(W**2)
         weights_sum += Wsum
     
@@ -40,6 +41,7 @@ def cross_entropy(Y,P,nBatch,oneHotEnc=True):
     for i in range(batches):
         startIdx = i*nBatch
         endIdx = startIdx + nBatch
+        
         Ybatch = Y[:,startIdx:endIdx]
         Pbatch = P[:,startIdx:endIdx]
 
@@ -49,8 +51,33 @@ def cross_entropy(Y,P,nBatch,oneHotEnc=True):
 
     return entrSum
 
-def reduceDims(X,Y,y,redDim,redN):
-    XbatchRedDim = X[:redDim,:redN]
-    YbatchRedDim = Y[:,:redN]
-    ybatchRedDim = y[:redN]
-    return XbatchRedDim , YbatchRedDim , ybatchRedDim
+
+def softMax(X, debug=False):
+    #Standard definition of the softmax function
+    S = np.exp(X) / np.sum(np.exp(X), axis=0)
+    
+    return S
+
+
+def setEta(epoch,n_s,etaMin, etaMax):
+    # Cyclical learning rate
+    #
+    # n_s must be a positive integer
+    # n_s is typically chosen to be
+    # k*np.floor(N/n_batch) with k being
+    # an integer between  2 and 8 and N
+    # is the total number of training examples
+    # and n_batch the number of examples in a 
+    # batch.
+
+    # "Normalize" the time so we don't have to
+    # worry about l
+
+    t = epoch % (2*n_s)
+
+    if (t <= n_s):
+        etat = etaMin*(1-t/n_s) + etaMax*t/n_s
+    else:
+        etat = etaMax*(2-t/n_s) + etaMin*(t/n_s-1)
+    
+    return etat

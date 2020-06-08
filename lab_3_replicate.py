@@ -1,9 +1,9 @@
 """ Trying to replicate results from lab 2 """
 
 import numpy as np
-from data_handling import loadPreProcData , loadBatch , loadAllFiles , loadTestFiles
+from data_handling import loadPreProcData , loadBatch , loadAllFiles , loadTestFiles , reduceDims
 from numerical_grads import testGrads , relErr
-from K_NN_funcs import reduceDims , relu , cross_entropy , cross_entropy_prime , L2_cost
+from K_NN_funcs import  relu , cross_entropy , cross_entropy_prime , L2_cost
 from K_NN_network_class import Network
 from K_NN_layer_class import FCLayer , ActLayer
 import matplotlib.pyplot as plt
@@ -44,7 +44,7 @@ recPerEp = 10
 
 nLayers = 1
 nBatch = 100
-cycles = 4
+cycles = 2
 eta = [1e-5, 1e-2]
 lamda = 1.73e-5
 

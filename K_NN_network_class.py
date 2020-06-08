@@ -1,6 +1,6 @@
 import numpy as np
 from numpy import random
-from node_funcs import setEta , softMax
+from K_NN_funcs import setEta , softMax
 import copy
 from K_NN_layer_class import FCLayer , ActLayer
 
@@ -22,33 +22,37 @@ class Network:
         self.cost = {"Training":[],"Validation":[],"Test":[]}
         self.loss = {"Training":[],"Validation":[],"Test":[]}
         self.accuracy = {"Training":[],"Validation":[],"Test":[]}
-        self.weights = []
-        self.biases = []
         self.P = {"Training":None,"Validation":None}
 
-    def build_layers(self, data_dim, nClasses, hidden_dim,act_func):
+    def build_layers(self, data_dim, nClasses, hidden_dim,act_func,W=None, b=None):
 
         n_layers = len(hidden_dim)
+        
+        if W == None:
+            W = []
+            for i in range(n_layers):
+                W.append(None)
 
-        self.add_layer(FCLayer(input_size=hidden_dim[0],output_size=data_dim))
+        if b == None:
+            b = []
+            for i in range(n_layers):
+                b.append(None)
+
+        self.add_layer(FCLayer(input_size=data_dim,output_size=hidden_dim[0],W=W[0],b=b[0]))
         self.add_layer(ActLayer(act_func))
 
-        for i in range(1,n_layers-1):
-            self.add_layer(FCLayer(input_size=hidden_dim[i],output_size=hidden_dim[i-1]))
+        for i in range(1,n_layers):
+            self.add_layer(FCLayer(input_size=hidden_dim[i-1],output_size=hidden_dim[i],W=W[i],b=b[i]))
             self.add_layer(ActLayer(act_func))
 
-        self.add_layer(FCLayer(input_size=nClasses,output_size=hidden_dim[-1]))
+        self.add_layer(FCLayer(input_size=hidden_dim[-1],output_size=nClasses,W=W[-1],b=b[-1]))
     
 
     def add_layer(self, layer):
         layerIdx = len(self.layers)
         layer.layerIdx = layerIdx
-
+        print("Added layer %d : %s" % (layerIdx,layer.name))
         self.layers.append(layer)
-        
-        if type(layer) == FCLayer:
-            self.weights.append(layer.W)
-            self.biases.append(layer.b)
     
     def set_loss(self, loss_func, loss_prime_func):
         self.loss_func = loss_func
@@ -57,17 +61,63 @@ class Network:
     def set_cost(self, cost_func):
         self.cost_func = cost_func
 
-    def forward_prop(self, input_data,key):
-        """ Runs data through network and softmax 
-            (should) returns matrix P of dimension k x N """
-        self.input = input_data
+    def get_pars(self,getAll=False):
+        weights = []
+        biases = []
 
-        output = input_data
+        for layer in self.layers:
+            if type(layer) == FCLayer:
+                if getAll:
+                    weights.append(layer.weights)
+                    biases.append(layer.biases)
+                else:
+                    weights.append(layer.W)
+                    biases.append(layer.b)
+        
+        return weights , biases
+
+    def get_weights(self):
+        weights = {}
+
+        for layer in self.layers:
+            if type(layer) == FCLayer:
+                weights[layer.layerIdx] = layer.W
+        
+        return weights
+    
+    def get_biases(self):
+        biases = {}
+
+        for layer in self.layers:
+            if type(layer) == FCLayer:
+                biases[layer.layerIdx] = layer.b
+
+        return biases
+
+    def get_fcIdxs(self):
+        FCidx = []
         
         for layer in self.layers:
-            output = layer.forward_pass(output)
+            if type(layer) == FCLayer:
+                FCidx.append(layer.layerIdx)
         
+        return FCidx
+
+    def forward_prop(self, input_data,key="Training"):
+        """ Runs data through network and softmax 
+            Returns matrix P of dimension k x N """
+        
+        self.input = input_data
+        output = input_data
+        
+        for i,layer in enumerate(self.layers):
+            #print("Input to layer %d : %s" % (i,layer.name))
+            #print("Has shape", output.shape)
+            output = layer.forward_pass(output)
+            
+        #print("Input to softmax layer has dims ", output.shape)
         output = softMax(output)
+        #print("Output (P) from softmax is dim : ", output.shape)
 
         self.P[key] = output
 
@@ -99,7 +149,7 @@ class Network:
 
         rec_every = int(steps_per_ep/recPerEp)
 
-        index = np.array(range(N))
+        index = np.arange(N)
         t = 0
 
         for epoch in range(n_epochs):
@@ -124,13 +174,15 @@ class Network:
                 Xbatch = Xtrain[:,tmpIdx]
                 Ybatch = Ytrain[:,tmpIdx]
                 ybatch = ytrain[tmpIdx]
-
+                
+                self.forward_prop(Xbatch)
+                self.backward_prop(Ybatch,step_eta)
+                
                 if (step % rec_every) == 0:
                     self.checkpoint(Xval,Yval,yval,"Validation")
                     self.checkpoint(Xbatch,Ybatch,ybatch,"Training")
 
-                self.forward_prop(Xbatch,"Training")
-                self.backward_prop(Ybatch,step_eta)
+                
 
 
     def checkpoint(self,X,Y,y,key):
@@ -139,19 +191,19 @@ class Network:
         self.compute_cost(key)
         self.compute_accuracy(X,y,key)
 
-    def compute_loss(self, Y, key):
+    def compute_loss(self, Y, key="Training"):
         
         l = self.loss_func(Y,self.P[key],self.nBatch)
 
         self.loss[key].append(l)
     
-    def compute_cost(self, key):
+    def compute_cost(self, key="Training"):
         
         J = self.cost_func(self,self.loss[key][-1],self.lamda)
         
         self.cost[key].append(J)
     
-    def compute_accuracy(self, X, y, key):
+    def compute_accuracy(self, X, y, key="Training"):
         N = np.shape(X)[1]
 
         self.forward_prop(X,key)
@@ -162,7 +214,23 @@ class Network:
         self.accuracy[key].append(n_correct/N)
 
     
+    def copyNet(self):
 
-    
+        test_net = Network(self.lamda,self.eta,self.n_cycles,self.n_s,self.nBatch)        
+
+        for layer in self.layers:
+            if type(layer) == FCLayer:
+                tmpW = copy.deepcopy(layer.W)
+                tmpb = copy.deepcopy(layer.b)
+                test_net.add_layer(FCLayer(layer.nCols, layer.nRows, layer.mu, layer.sig, layer.lamda, tmpW, tmpb))
+            else:
+                test_net.add_layer(layer)
+
+        test_net.set_cost(self.cost_func)
+        test_net.set_loss(self.loss_func,self.loss_prime_func)
+
+        return test_net
+
+
     
 

@@ -101,3 +101,9 @@ def preProc(X):
     #X = X + np.abs(np.min(X,1))[:,None]
     #X = X / np.max(X,1)[:,None]"""
     return X
+
+def reduceDims(X,Y,y,redDim,redN):
+    XbatchRedDim = X[:redDim,:redN]
+    YbatchRedDim = Y[:,:redN]
+    ybatchRedDim = y[:redN]
+    return XbatchRedDim , YbatchRedDim , ybatchRedDim
