@@ -229,18 +229,7 @@ class Network:
     
     def copyNet(self):
 
-        test_net = Network()        
-
-        for layer in self.layers:
-            if type(layer) == FCLayer:
-                tmpW = copy.deepcopy(layer.W)
-                tmpb = copy.deepcopy(layer.b)
-                test_net.add_layer(FCLayer(layer.nCols, layer.nRows, layer.init_func, layer.lamda, tmpW, tmpb))
-            else:
-                test_net.add_layer(layer)
-
-        for key in vars(self):
-            vars(test_net)[key] = copy.deepcopy(vars(self)[key])
+        test_net = copy.deepcopy(self)
         
         return test_net
 
