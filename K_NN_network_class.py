@@ -110,7 +110,7 @@ class Network:
         self.input = input_data
         output = input_data
         
-        for i,layer in enumerate(self.layers):
+        for layer in self.layers:
             #print("Input to layer %d : %s" % (i,layer.name))
             #print("Has shape", output.shape)
             output = layer.forward_pass(output)
@@ -125,7 +125,7 @@ class Network:
 
         input_error = self.loss_prime_func(input_labels, self.P["Training"])
         #print("Initial input (error) input to last layer: ", input_error)
-        for i,layer in enumerate(reversed(self.layers)):
+        for layer in reversed(self.layers):
             input_error = layer.backward_pass(input_error,eta)
             #print("Output from layer %d (input to %d):" % (i, i-1))
             #print(input_error)
