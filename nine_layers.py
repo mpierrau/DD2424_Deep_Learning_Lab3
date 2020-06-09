@@ -1,4 +1,4 @@
-""" Trying to replicate results from lab 2 """
+""" Running 9 layer NN with parameters from lab instructions. Test acc. 41.6% """
 
 import numpy as np
 from data_handling import loadPreProcData , loadBatch , loadAllFiles , loadTestFiles , reduceDims
