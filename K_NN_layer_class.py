@@ -22,7 +22,7 @@ class FCLayer(Layer):
     # input_size:
     # output_size:
     
-    def __init__(self, input_size, output_size, mu=0, sig=None, lamda=0, W = None, b = None):
+    def __init__(self, input_size, output_size, init_func, lamda=0, W = None, b = None, name=None):
         self.lamda = lamda
         self.batchSize = None
         self.nCols = input_size
@@ -31,16 +31,14 @@ class FCLayer(Layer):
         self.gradb = []
         self.weights = []
         self.biases = []
-        self.name = "Fully Connected Layer (%d,%d)" % (self.nRows,self.nCols)
-        self.mu = mu
+        self.init_func = init_func
 
-        if sig is None:
-            self.sig = 1/np.sqrt(self.nCols)
+        if name is None:
+            self.name = "Fully Connected Layer (%d,%d)" % (self.nRows,self.nCols)
         else:
-            self.sig = sig
-
+            self.name = name
         if W is None:
-            self.W = random.normal(loc=self.mu,scale=self.sig,size=(self.nRows,self.nCols))
+            self.W = self.init_func(in_dim=self.nCols,out_dim=self.nRows)
         else:
             self.W = W
 
@@ -97,9 +95,14 @@ class FCLayer(Layer):
 
 class ActLayer(Layer):
 
-    def __init__(self, act_func):
+    def __init__(self, act_func,name=None):
         self.act_func = act_func
-        self.name = "Activation Layer"
+
+        if name is None:
+            self.name = "Activation Layer"
+        else:
+            self.name = name
+
     def forward_pass(self, input_data):
         self.input = input_data
         self.output = self.act_func(self.input)

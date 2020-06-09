@@ -30,3 +30,16 @@ def plotData(cost,labels,title,xlab,ylab,shift,savename,foldername,showPlots=Fal
         fig.savefig(foldername + savename)
     if showPlots:
         plt.show()
+
+def custPlot(data1,data2,title,xlab,ylab,n_s,cycles)
+
+    steps1 = np.linspace(0,2*n_s*cycles,len(data1))
+    steps2 = np.linspace(0,2*n_s*cycles,len(data2))
+
+    plt.plot(steps1,data1)
+    plt.plot(steps2,data2)
+    plt.xlabel(xlab)
+    plt.ylabel(ylab)
+    plt.legend()
+
+    return plt

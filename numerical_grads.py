@@ -6,7 +6,7 @@ from K_NN_layer_class import FCLayer , ActLayer
 
 """ Test function for numerical gradient computation """
 
-def testGrads(X, Y, layerDims, lamda, h, nBatch=None, mu=0, sig=0.01, fast=True, debug=False, eta=1e-5, burnIn=10):
+def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.01, fast=True, debug=False, eta=1e-5, burnIn=10):
     # Compares results of analytically computed
     # gradients to numerical approximations to
     # ensure correctness.
@@ -22,33 +22,63 @@ def testGrads(X, Y, layerDims, lamda, h, nBatch=None, mu=0, sig=0.01, fast=True,
     
     print("Building anNet : \n")
 
-    anNet = Network(lamda,eta,1,1,nBatch)
-    anNet.build_layers(d,k,layerDims,relu)
+    anNet = Network()
+    anNet.build_layers(d,k,layerDims,relu,init_func)
     anNet.set_cost(L2_cost)
     anNet.set_loss(cross_entropy, cross_entropy_prime)
 
     print("Burning in %d steps..." % burnIn)
+    
+    anNet.nBatch = nBatch
+    anNet.eta = [eta,eta]
+    anNet.lamda = lamda
+    anNet.n_cycles = burnIn-1
+    anNet.n_s = .5
+
     for _ in range(burnIn-1):
         anNet.forward_prop(X)
-        anNet.backward_prop(Y,eta)
+        anNet.backward_prop(y, anNet.eta[0])
 
+    print("number of steps after burn in: ", len(anNet.loss["Training"]))
+
+    anNet.compute_loss(Y)
+    anNet.compute_cost()
+
+    print("number of steps after computing loss and loss: ", len(anNet.loss["Training"]))
+    
+    
+    #anNet.fit([X,X],[Y,Y],[y,y],burnIn-1,.5,nBatch,[eta,eta],lamda,1,seed=1337)
+
+    #print("number of steps taken in burn in of anNet before copy: ", len(anNet.loss["Training"]))
     test_net = anNet.copyNet()
 
-    # Final grad computation
+    print("number of steps after copy in: ", len(anNet.loss["Training"]))
+
+    print("Computing grads using %s algorithm..." % ("fast but inaccurate" if fast else "slow but accurate"))
+    
+    print("anNet.P before computeGradsNum ", anNet.P["Training"])
+
+    W_grad_num , b_grad_num , numNet = computeGradsNum(test_net,X,Y,y,h,fast)
+
+    print("number of steps taken after numerical approx: ", len(anNet.loss["Training"]))
+    print("anNet.P after computeGradsNum ", anNet.P["Training"])
+
     anNet.forward_prop(X)
-    anNet.backward_prop(Y,eta)
+    anNet.backward_prop(y, anNet.eta[0])
+
+    print("anNet.P after final comp ", anNet.P["Training"])
+    print("number of steps after final comp: ", len(anNet.loss["Training"]))
+    # Final grad computation
+
+    #anNet.fit([X,X],[Y,Y],[y,y],1,.5,nBatch,[eta,eta],lamda,1,seed=1337)
 
     gradWList = []
     gradbList = []
-
+    
     for layer in anNet.layers:
         if type(layer) == FCLayer:
             gradWList.append(layer.gradW[-1])
             gradbList.append(layer.gradb[-1])
-
-    print("Computing grads using %s algorithm..." % ("fast but inaccurate" if fast else "slow but accurate"))
-    
-    W_grad_num , b_grad_num , numNet = computeGradsNum(test_net,X,Y,h,fast)
 
     relErrsW = []
     relErrsb  = []
@@ -70,7 +100,7 @@ def testGrads(X, Y, layerDims, lamda, h, nBatch=None, mu=0, sig=0.01, fast=True,
     return errs , Wgrads , bgrads , anNet , numNet
 
 
-def computeGradsNum(net, X, Y, h=1e-6, fast=False):
+def computeGradsNum(net, X, Y, y, h=1e-6, fast=False):
         """ Uses finite or centered difference approx depending on fast boolean 
             Good practice: let net burn in a few steps before computing grads"""
 
@@ -84,11 +114,9 @@ def computeGradsNum(net, X, Y, h=1e-6, fast=False):
             print("Using centered difference method")
             approx_func = lambda el,layer_idx,el_idx_i,el_idx_j,c : centered_diff(net,X,Y,el,layer_idx,el_idx_i,el_idx_j,h)
         
-        net.forward_prop(X)
-        net.compute_loss(Y)
-        net.compute_cost()
         c = net.cost["Training"][-1]
-        
+
+        print("Initial c in computeGradsNum : ", c)
         # Compute grads for all b
 
         biases = net.get_biases()

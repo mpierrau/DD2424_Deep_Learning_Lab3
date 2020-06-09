@@ -1,30 +1,34 @@
 import numpy as np
 from numpy import random
-from K_NN_funcs import setEta , softMax
+from K_NN_funcs import setEta , softMax , he_init
 import copy
 from K_NN_layer_class import FCLayer , ActLayer
 
 # TODO: why does accuracy turn out only 0 or 0.001 ? All predictions seem to be 0.1 .
 
 class Network:
-    def __init__(self,lamda,eta,n_cycles,n_s,nBatch):
-        self.lamda = lamda
-        self.eta = eta
-        self.n_cycles = n_cycles
-        self.n_s = n_s
-        self.nBatch = nBatch
+    def __init__(self):
+        
+        self.lamda = None
+        self.eta = None
+        self.n_cycles = None
+        self.n_s = None
+        self.nBatch = None
         self.eta_list = []
+        
         self.input = None
         self.layers = []
+
         self.loss_func = None
         self.loss_prime_func = None
         self.cost_func = None
+        
         self.cost = {"Training":[],"Validation":[],"Test":[]}
         self.loss = {"Training":[],"Validation":[],"Test":[]}
         self.accuracy = {"Training":[],"Validation":[],"Test":[]}
         self.P = {"Training":None,"Validation":None}
 
-    def build_layers(self, data_dim, nClasses, hidden_dim,act_func,W=None, b=None):
+    def build_layers(self, data_dim, nClasses, hidden_dim,act_func,init_func=he_init,W=None, b=None):
 
         n_layers = len(hidden_dim)
         
@@ -38,14 +42,17 @@ class Network:
             for i in range(n_layers):
                 b.append(None)
 
-        self.add_layer(FCLayer(input_size=data_dim,output_size=hidden_dim[0],W=W[0],b=b[0]))
+        self.add_layer(FCLayer( input_size=data_dim,output_size=hidden_dim[0],
+                                init_func=init_func,W=W[0],b=b[0]))
         self.add_layer(ActLayer(act_func))
 
         for i in range(1,n_layers):
-            self.add_layer(FCLayer(input_size=hidden_dim[i-1],output_size=hidden_dim[i],W=W[i],b=b[i]))
+            self.add_layer(FCLayer( input_size=hidden_dim[i-1],output_size=hidden_dim[i],
+                                    init_func=init_func,W=W[i],b=b[i]))
             self.add_layer(ActLayer(act_func))
 
-        self.add_layer(FCLayer(input_size=hidden_dim[-1],output_size=nClasses,W=W[-1],b=b[-1]))
+        self.add_layer(FCLayer( input_size=hidden_dim[-1],output_size=nClasses,
+                                init_func=init_func,W=W[-1],b=b[-1]))
     
 
     def add_layer(self, layer):
@@ -130,9 +137,15 @@ class Network:
             #print("Output from layer %d (input to %d):" % (i, i-1))
             #print(input_error)
             
-    def fit(self, X, Y, y, recPerEp):
+    def fit(self, X, Y, y,n_cycles,n_s,nBatch,eta,lamda,recPerEp,seed=None):
         """ X = [Xtrain, Xval] 
             Y = [Ytrain, Yval]"""
+
+        self.n_cycles = n_cycles
+        self.n_s = n_s
+        self.nBatch = nBatch
+        self.eta = eta
+        self.lamda = lamda
 
         Xtrain , Xval = X
         Ytrain , Yval = Y
@@ -153,7 +166,7 @@ class Network:
         t = 0
 
         for epoch in range(n_epochs):
-            print("Epoch %d of %d" % (epoch,n_epochs))
+            print("Epoch %d of %d" % (epoch+1,n_epochs))
             # Shuffle batches in each epoch
             random.shuffle(index)
             Xtrain = Xtrain[:,index]
@@ -216,19 +229,19 @@ class Network:
     
     def copyNet(self):
 
-        test_net = Network(self.lamda,self.eta,self.n_cycles,self.n_s,self.nBatch)        
+        test_net = Network()        
 
         for layer in self.layers:
             if type(layer) == FCLayer:
                 tmpW = copy.deepcopy(layer.W)
                 tmpb = copy.deepcopy(layer.b)
-                test_net.add_layer(FCLayer(layer.nCols, layer.nRows, layer.mu, layer.sig, layer.lamda, tmpW, tmpb))
+                test_net.add_layer(FCLayer(layer.nCols, layer.nRows, layer.init_func, layer.lamda, tmpW, tmpb))
             else:
                 test_net.add_layer(layer)
 
-        test_net.set_cost(self.cost_func)
-        test_net.set_loss(self.loss_func,self.loss_prime_func)
-
+        for key in vars(self):
+            vars(test_net)[key] = copy.deepcopy(vars(self)[key])
+        
         return test_net
 
 

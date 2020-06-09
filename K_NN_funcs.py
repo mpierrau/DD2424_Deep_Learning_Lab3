@@ -1,5 +1,6 @@
 from K_NN_layer_class import FCLayer
 import numpy as np
+import math
 
 def relu(input_data):
     # ReLu activation function
@@ -81,3 +82,22 @@ def setEta(epoch,n_s,etaMin, etaMax):
         etat = etaMax*(2-t/n_s) + etaMin*(t/n_s-1)
     
     return etat
+
+
+def he_init(in_dim,out_dim):
+    """ He (Kaiming) initialization """
+    mat = np.random.normal(0,1,(out_dim,in_dim))*math.sqrt(2./in_dim)
+    
+    return mat
+
+def xavier_init(in_dim,out_dim):
+    """ Xavier initalization """
+    mat = np.random.uniform(-1,1,(out_dim,in_dim))*math.sqrt(6./(in_dim + out_dim))
+
+    return mat
+
+def regular_init(in_dim,out_dim):
+    """ Regular naive initialization """
+    mat = np.random.normal(0,1/np.sqrt(in_dim),(out_dim,in_dim))
+
+    return mat

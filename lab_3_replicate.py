@@ -3,7 +3,7 @@
 import numpy as np
 from data_handling import loadPreProcData , loadBatch , loadAllFiles , loadTestFiles , reduceDims
 from numerical_grads import testGrads , relErr
-from K_NN_funcs import  relu , cross_entropy , cross_entropy_prime , L2_cost
+from K_NN_funcs import  relu , cross_entropy , cross_entropy_prime , L2_cost , he_init , xavier_init
 from K_NN_network_class import Network
 from K_NN_layer_class import FCLayer , ActLayer
 import matplotlib.pyplot as plt
@@ -40,12 +40,12 @@ k = np.shape(Yin[0])[0]
 #d = redDim
 #N = redN
 
-recPerEp = 10
+recPerEp = 100
 
 nLayers = 1
 nBatch = 100
-cycles = 2
-eta = [1e-5, 1e-2]
+cycles = 1
+eta = [1e-5, 1e-1]
 lamda = 1.73e-5
 
 batchSize = int(d/nBatch)
@@ -53,16 +53,20 @@ n_s = int(2*np.floor(N/nBatch))
 
 layerDims = [50]
 
-net = Network(lamda,eta,cycles,n_s,nBatch)
-net.build_layers(d,k,layerDims,relu)
+net = Network()
+net.build_layers(d,k,layerDims,relu,he_init)
 
 net.set_loss(cross_entropy, cross_entropy_prime)
 net.set_cost(L2_cost)
 
-net.fit(Xin,Yin,yin,recPerEp)
+net.fit(Xin,Yin,yin,cycles,n_s,nBatch,eta,lamda,recPerEp)
 
-plt.plot(np.arange(len(net.cost["Training"])),net.cost["Training"],label="Training")
-plt.plot(np.arange(len(net.cost["Validation"])),net.cost["Validation"],label="Validation")
+steps = np.linspace(0,2*n_s*cycles,len(net.cost["Training"]))
+
+plt.plot(steps,net.cost["Training"],label="Training")
+plt.plot(10*np.arange(len(net.cost["Validation"])),net.cost["Validation"],label="Validation")
+plt.xlabel("Steps")
+plt.ylabel("Loss")
 plt.legend()
 
 plt.show()
