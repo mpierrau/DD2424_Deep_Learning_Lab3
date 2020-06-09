@@ -119,91 +119,6 @@ def computeGradsNum(net, X, Y, h=1e-6, fast=False):
 
         return grads_W, grads_b , net
 
-"""
-def computeGradsNumSlow(net, X, Y):
-    """ """Uses centred difference approx """ """
-    
-    grads_W = list()
-    grads_b = list()
-
-    test_net = Network(net.lamda,net.eta,net.n_cycles,net.n_s,net.nBatch)
-    FCidx = []
-
-    for k, layer in enumerate(net.layers):
-        if type(layer) == FCLayer:
-            tmpW = copy.deepcopy(layer.W)
-            tmpb = copy.deepcopy(layer.b)
-
-            test_net.add_layer(FCLayer(layer.nCols, layer.nRows, layer.mu, layer.sig, layer.lamda, tmpW, tmpb))
-            FCidx.append(k)
-        else:
-            test_net.add_layer(layer)
-    
-    test_net.set_cost(net.cost_func)
-    test_net.set_loss(net.loss_func,net.loss_prime_func)
-
-    biases = test_net.get_biases()
-
-    for j in range(len(biases)):
-        grads_b.append(np.zeros((len(biases[j]),1)))
-        
-        for i in range(len(biases[j])):
-            test_net.layers[FCidx[j]].b[i] -= h
-            
-            test_net.forward_prop(X)
-            test_net.compute_loss(Y)
-            test_net.compute_cost()
-
-            c1 = test_net.cost["Training"][-1]
-
-            test_net.layers[FCidx[j]].b[i] += 2*h
-            
-            test_net.forward_prop(X)
-            test_net.compute_loss(Y)
-            test_net.compute_cost()
-
-            c2 = test_net.cost["Training"][-1]
-            
-            grads_b[j][i][0] = (c2-c1) / (2*h)
-
-            #reset entries for next pass
-            test_net.layers[FCidx[j]].b[i] -= h
-    
-    test_net.layers[FCidx[j]].gradb.append(grads_b[j])
-
-    weights = test_net.get_weights()
-
-    for k in range(len(weights)):
-        grads_W.append(np.zeros(np.shape(weights[k])))
-
-        for i in range(np.shape(grads_W[k])[0]):
-            for j in range(np.shape(grads_W[k])[1]):
-                test_net.layers[FCidx[k]].W[i,j] -= h
-                
-                test_net.forward_prop(X)
-                test_net.compute_loss(Y)
-                test_net.compute_cost()
-
-                c1 = test_net.cost["Training"][-1]
-
-                test_net.layers[FCidx[k]].W[i,j] += 2*h
-                
-                test_net.forward_prop(X)
-                test_net.compute_loss(Y)
-                test_net.compute_cost()
-
-                c2 = test_net.cost["Training"][-1]
-
-                grads_W[k][i,j] = (c2-c1) / (2*h)
-                
-                #reset entries for next pass
-                test_net.layers[FCidx[k]].W[i,j] -= h
-
-        test_net.layers[FCidx[k]].gradW.append(grads_W[k])
-
-    return grads_W, grads_b , test_net
-"""
-
 def relErr(Wan,Wnum,eps=1e-10):
     # Computes mean relative error between Jacobians Wan and Wnum
     #return np.mean(np.abs(Wan - Wnum)/np.maximum(np.abs(Wan),np.abs(Wnum)))
@@ -224,21 +139,8 @@ def finite_diff(net,X,Y,el,layer_idx,el_idx_i,el_idx_j,c,h):
         else:
             net.layers[layer_idx].W[el_idx_i,el_idx_j] += h
 
-    """
-    print("Element before update")
-    if el == "b":
-        print(net.layers[layer_idx].b[el_idx_i,el_idx_j])
-    else:
-        print(net.layers[layer_idx].W[el_idx_i,el_idx_j])
-   """ 
     update_el(el,layer_idx,el_idx_i,el_idx_j,h)
-    """
-    print("Element after update")
-    if el == "b":
-        print(net.layers[layer_idx].b[el_idx_i,el_idx_j])
-    else:
-        print(net.layers[layer_idx].W[el_idx_i,el_idx_j])
-    """
+
     net.forward_prop(X)
     net.compute_loss(Y)
 
@@ -247,8 +149,6 @@ def finite_diff(net,X,Y,el,layer_idx,el_idx_i,el_idx_j,c,h):
     c2 = net.cost["Training"][-1]
 
     grad_approx = (c2-c) / h
-    
-    #print("Grad approx: ", grad_approx)
 
     #reset entries for next pass
     update_el(el,layer_idx,el_idx_i,el_idx_j,-h)
