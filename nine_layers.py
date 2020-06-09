@@ -34,7 +34,7 @@ n_s = 5*45000/nBatch
 
 #n_s = int(2*np.floor(N/nBatch))
 
-layerDims = [50,50]
+layerDims = [50, 30, 20, 20, 10, 10, 10, 10]
 
 net = Network()
 net.build_layers(d,k,layerDims,relu,he_init)

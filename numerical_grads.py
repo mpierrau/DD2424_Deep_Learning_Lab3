@@ -37,7 +37,7 @@ def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.
 
     for _ in range(burnIn-1):
         anNet.forward_prop(X)
-        anNet.backward_prop(y, anNet.eta[0])
+        anNet.backward_prop(Y, anNet.eta[0])
 
     print("number of steps after burn in: ", len(anNet.loss["Training"]))
 
@@ -50,7 +50,7 @@ def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.
     #anNet.fit([X,X],[Y,Y],[y,y],burnIn-1,.5,nBatch,[eta,eta],lamda,1,seed=1337)
 
     #print("number of steps taken in burn in of anNet before copy: ", len(anNet.loss["Training"]))
-    test_net = anNet.copyNet()
+    test_net = copy.deepcopy(anNet)
 
     print("number of steps after copy in: ", len(anNet.loss["Training"]))
 
@@ -64,7 +64,7 @@ def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.
     print("anNet.P after computeGradsNum ", anNet.P["Training"])
 
     anNet.forward_prop(X)
-    anNet.backward_prop(y, anNet.eta[0])
+    anNet.backward_prop(Y, anNet.eta[0])
 
     print("anNet.P after final comp ", anNet.P["Training"])
     print("number of steps after final comp: ", len(anNet.loss["Training"]))
@@ -77,8 +77,8 @@ def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.
     
     for layer in anNet.layers:
         if type(layer) == FCLayer:
-            gradWList.append(layer.gradW[-1])
-            gradbList.append(layer.gradb[-1])
+            gradWList.append(layer.gradW)
+            gradbList.append(layer.gradb)
 
     relErrsW = []
     relErrsb  = []

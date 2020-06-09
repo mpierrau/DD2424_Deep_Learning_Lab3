@@ -2,6 +2,7 @@ import numpy as np
 from data_handling import loadPreProcData , reduceDims
 from numerical_grads import testGrads , relErr
 from K_NN_funcs import he_init , regular_init
+
 X1 , Y1 , y1 = loadPreProcData('data_batch_1','data_batch_2','data_batch_3')
 
 redDim = 20

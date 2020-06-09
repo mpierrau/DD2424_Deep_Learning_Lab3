@@ -27,16 +27,15 @@ class FCLayer(Layer):
         self.batchSize = None
         self.nCols = input_size
         self.nRows = output_size
-        self.gradW = []
-        self.gradb = []
-        self.weights = []
-        self.biases = []
+        self.gradW = None
+        self.gradb = None
         self.init_func = init_func
 
         if name is None:
             self.name = "Fully Connected Layer (%d,%d)" % (self.nRows,self.nCols)
         else:
             self.name = name
+                    
         if W is None:
             self.W = self.init_func(in_dim=self.nCols,out_dim=self.nRows)
         else:
@@ -46,9 +45,6 @@ class FCLayer(Layer):
             self.b = np.zeros((self.nRows,1))
         else:
             self.b = b
-        
-        self.weights.append(self.W)
-        self.biases.append(self.b)
 
     def forward_pass(self, input_data):
         self.input = input_data
@@ -80,18 +76,15 @@ class FCLayer(Layer):
         dJdW = (dldW / self.batchSize) + 2 * self.lamda * self.W
         dJdb = dldb / self.batchSize
 
-        self.gradW.append(dJdW)
-        self.gradb.append(dJdb)
+        self.gradW = dJdW
+        self.gradb = dJdb
 
     def update_pars(self, eta):
-        newW = self.W - eta * self.gradW[-1]
-        newb = self.b - eta * self.gradb[-1]
+        newW = self.W - eta * self.gradW
+        newb = self.b - eta * self.gradb
         
         self.W = newW
         self.b = newb
-
-        self.weights.append(newW)
-        self.biases.append(newb)
 
 class ActLayer(Layer):
 

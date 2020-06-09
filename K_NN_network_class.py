@@ -14,7 +14,9 @@ class Network:
         self.n_cycles = None
         self.n_s = None
         self.nBatch = None
-        self.eta_list = []
+
+        self.weights = []
+        self.biases = []
         
         self.input = None
         self.layers = []
@@ -67,48 +69,6 @@ class Network:
 
     def set_cost(self, cost_func):
         self.cost_func = cost_func
-
-    def get_pars(self,getAll=False):
-        weights = []
-        biases = []
-
-        for layer in self.layers:
-            if type(layer) == FCLayer:
-                if getAll:
-                    weights.append(layer.weights)
-                    biases.append(layer.biases)
-                else:
-                    weights.append(layer.W)
-                    biases.append(layer.b)
-        
-        return weights , biases
-
-    def get_weights(self):
-        weights = {}
-
-        for layer in self.layers:
-            if type(layer) == FCLayer:
-                weights[layer.layerIdx] = layer.W
-        
-        return weights
-    
-    def get_biases(self):
-        biases = {}
-
-        for layer in self.layers:
-            if type(layer) == FCLayer:
-                biases[layer.layerIdx] = layer.b
-
-        return biases
-
-    def get_fcIdxs(self):
-        FCidx = []
-        
-        for layer in self.layers:
-            if type(layer) == FCLayer:
-                FCidx.append(layer.layerIdx)
-        
-        return FCidx
 
     def forward_prop(self, input_data,key="Training"):
         """ Runs data through network and softmax 
@@ -169,40 +129,38 @@ class Network:
             print("Epoch %d of %d" % (epoch+1,n_epochs))
             # Shuffle batches in each epoch
             random.shuffle(index)
+            """print("Xtrain before index shuffle: ", Xtrain.shape)
             Xtrain = Xtrain[:,index]
+            print("Xtrain after index shuffle: ", Xtrain.shape)
+            print("Index type: ", type(index))
+            print("Index: ", index)
             Ytrain = Ytrain[:,index]
-            ytrain = ytrain[index]
+            ytrain = ytrain[index]"""
 
             epoch_steps = steps_per_ep if (((tot_steps - t) // steps_per_ep) > 0 ) else (tot_steps % steps_per_ep) 
 
             for step in range(epoch_steps):
                 t = epoch*epoch_steps + step
                 step_eta = setEta(t,self.n_s,eta_min,eta_max)
-                self.eta_list.append(step_eta)
                 batchIdxStart = step*self.nBatch
                 batchIdxEnd = batchIdxStart + self.nBatch
 
-                tmpIdx = np.arange(batchIdxStart,batchIdxEnd)
-
+                tmpIdx = index[np.arange(batchIdxStart,batchIdxEnd)]
+                print(tmpIdx)
                 Xbatch = Xtrain[:,tmpIdx]
                 Ybatch = Ytrain[:,tmpIdx]
                 ybatch = ytrain[tmpIdx]
                 
+                #print("Shape of Xbatch: ", Xbatch.shape)
+
                 self.forward_prop(Xbatch)
                 self.backward_prop(Ybatch,step_eta)
                 
                 if (step % rec_every) == 0:
                     self.checkpoint(Xval,Yval,yval,"Validation")
                     self.checkpoint(Xbatch,Ybatch,ybatch,"Training")
+                    self.save_pars()
 
-                
-
-
-    def checkpoint(self,X,Y,y,key):
-        self.forward_prop(X,key)
-        self.compute_loss(Y,key)
-        self.compute_cost(key)
-        self.compute_accuracy(X,y,key)
 
     def compute_loss(self, Y, key="Training"):
         
@@ -226,13 +184,46 @@ class Network:
         
         self.accuracy[key].append(n_correct/N)
 
+                
+    def save_pars(self):
+        self.weights.append(self.get_weights())
+        self.biases.append(self.get_biases())
+
+    def get_pars(self):
+        return self.weights , self.biases
+
     
-    def copyNet(self):
+    def get_weights(self):
+        weights = {}
 
-        test_net = copy.deepcopy(self)
+        for layer in self.layers:
+            if type(layer) == FCLayer:
+                weights[layer.layerIdx] = layer.W
         
-        return test_net
+        return weights
+    
+    def get_biases(self):
+        biases = {}
 
+        for layer in self.layers:
+            if type(layer) == FCLayer:
+                biases[layer.layerIdx] = layer.b
 
+        return biases
+
+    def get_fcIdxs(self):
+        FCidx = []
+        
+        for layer in self.layers:
+            if type(layer) == FCLayer:
+                FCidx.append(layer.layerIdx)
+        
+        return FCidx
+
+    def checkpoint(self,X,Y,y,key):
+        self.forward_prop(X,key)
+        self.compute_loss(Y,key)
+        self.compute_cost(key)
+        self.compute_accuracy(X,y,key)
     
 
