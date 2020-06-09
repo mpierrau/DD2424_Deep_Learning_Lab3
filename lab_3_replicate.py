@@ -1,4 +1,5 @@
-""" Trying to replicate results from lab 2 """
+""" Trying to replicate results from lab 2 .. 
+    Running 2-layer NN with pars from lab instructions. 49.7% accuracy on test"""
 
 import numpy as np
 from data_handling import loadPreProcData , loadBatch , loadAllFiles , loadTestFiles , reduceDims

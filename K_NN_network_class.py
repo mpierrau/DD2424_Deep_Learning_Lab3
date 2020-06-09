@@ -3,6 +3,7 @@ from numpy import random
 from K_NN_funcs import setEta , softMax , he_init
 import copy
 from K_NN_layer_class import FCLayer , ActLayer
+from tqdm import trange 
 
 # TODO: why does accuracy turn out only 0 or 0.001 ? All predictions seem to be 0.1 .
 
@@ -78,24 +79,17 @@ class Network:
         output = input_data
         
         for layer in self.layers:
-            #print("Input to layer %d : %s" % (i,layer.name))
-            #print("Has shape", output.shape)
             output = layer.forward_pass(output)
             
-        #print("Input to softmax layer has dims ", output.shape)
         output = softMax(output)
-        #print("Output (P) from softmax is dim : ", output.shape)
 
         self.P[key] = output
 
     def backward_prop(self, input_labels, eta):
 
         input_error = self.loss_prime_func(input_labels, self.P["Training"])
-        #print("Initial input (error) input to last layer: ", input_error)
         for layer in reversed(self.layers):
             input_error = layer.backward_pass(input_error,eta)
-            #print("Output from layer %d (input to %d):" % (i, i-1))
-            #print(input_error)
             
     def fit(self, X, Y, y,n_cycles,n_s,nBatch,eta,lamda,recPerEp,seed=None):
         """ X = [Xtrain, Xval] 
@@ -125,34 +119,25 @@ class Network:
         index = np.arange(N)
         t = 0
 
-        for epoch in range(n_epochs):
-            print("Epoch %d of %d" % (epoch+1,n_epochs))
+        for epoch in trange(n_epochs):
             # Shuffle batches in each epoch
             random.shuffle(index)
-            """print("Xtrain before index shuffle: ", Xtrain.shape)
-            Xtrain = Xtrain[:,index]
-            print("Xtrain after index shuffle: ", Xtrain.shape)
-            print("Index type: ", type(index))
-            print("Index: ", index)
-            Ytrain = Ytrain[:,index]
-            ytrain = ytrain[index]"""
 
             epoch_steps = steps_per_ep if (((tot_steps - t) // steps_per_ep) > 0 ) else (tot_steps % steps_per_ep) 
+            
+            bar_range = trange(epoch_steps) # Gives nice progress bar
 
-            for step in range(epoch_steps):
+            for step in bar_range:
                 t = epoch*epoch_steps + step
                 step_eta = setEta(t,self.n_s,eta_min,eta_max)
                 batchIdxStart = step*self.nBatch
                 batchIdxEnd = batchIdxStart + self.nBatch
 
                 tmpIdx = index[np.arange(batchIdxStart,batchIdxEnd)]
-                print(tmpIdx)
                 Xbatch = Xtrain[:,tmpIdx]
                 Ybatch = Ytrain[:,tmpIdx]
                 ybatch = ytrain[tmpIdx]
                 
-                #print("Shape of Xbatch: ", Xbatch.shape)
-
                 self.forward_prop(Xbatch)
                 self.backward_prop(Ybatch,step_eta)
                 
@@ -161,6 +146,7 @@ class Network:
                     self.checkpoint(Xbatch,Ybatch,ybatch,"Training")
                     self.save_pars()
 
+            bar_range.close()
 
     def compute_loss(self, Y, key="Training"):
         
