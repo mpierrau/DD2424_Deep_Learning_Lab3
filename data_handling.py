@@ -59,9 +59,9 @@ def loadAllFiles(valSize):
 
     N5 = np.shape(X5)[1]
     
-    X5new = X5[:,0:N5-valSize]
-    Y5new = Y5[:,0:N5-valSize]
-    y5new = y5[0:N5-valSize]
+    X5new = X5[:,:N5-valSize]
+    Y5new = Y5[:,:N5-valSize]
+    y5new = y5[:N5-valSize]
 
     Xval = X5[:,N5-valSize:N5]
     Yval = Y5[:,N5-valSize:N5]

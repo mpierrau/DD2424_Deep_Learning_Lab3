@@ -1,14 +1,12 @@
 import numpy as np
 from numpy import random
-from K_NN_funcs import setEta , softMax , he_init
+from K_NN_funcs import setEta , softMax , he_init , relu , cross_entropy , cross_entropy_prime , L2_cost
 import copy
 from K_NN_layer_class import FCLayer , ActLayer
 from tqdm import trange 
 
-# TODO: why does accuracy turn out only 0 or 0.001 ? All predictions seem to be 0.1 .
-
 class Network:
-    def __init__(self):
+    def __init__(self,act_func=relu,loss_func=cross_entropy,loss_prime_func=cross_entropy_prime,cost_func=L2_cost,init_func=he_init,normalize=True,alpha=0.9):
         
         self.lamda = None
         self.eta = None
@@ -16,22 +14,28 @@ class Network:
         self.n_s = None
         self.nBatch = None
 
+        self.alpha = alpha
+
         self.weights = []
         self.biases = []
         
         self.input = None
         self.layers = []
 
-        self.loss_func = None
-        self.loss_prime_func = None
-        self.cost_func = None
-        
+        self.act_func = act_func
+        self.loss_func = loss_func
+        self.loss_prime_func = loss_prime_func
+        self.cost_func = cost_func
+        self.init_func = init_func
+        self.normalize = normalize
+
         self.cost = {"Training":[],"Validation":[],"Test":[]}
         self.loss = {"Training":[],"Validation":[],"Test":[]}
         self.accuracy = {"Training":[],"Validation":[],"Test":[]}
         self.P = {"Training":None,"Validation":None}
 
-    def build_layers(self, data_dim, nClasses, hidden_dim,act_func,init_func=he_init,W=None, b=None):
+
+    def build_layers(self, data_dim, nClasses, hidden_dim,W=None, b=None):
 
         n_layers = len(hidden_dim)
         
@@ -44,18 +48,28 @@ class Network:
             b = []
             for i in range(n_layers):
                 b.append(None)
+        
+        print("\n----------------------------------\n")
+        print("-- Building Network with parameters --\n")
+        print("- Input dimension : %d \n- Number of classes : %d\n" % (data_dim,nClasses))
+        print("- Number of hidden layers: %d" % (len(hidden_dim)))
+        print("\t- Dims: ", end='')
+        for dim in hidden_dim:
+            print(dim, end=" ")
+        print("\n----------------------------------\n")
+
 
         self.add_layer(FCLayer( input_size=data_dim,output_size=hidden_dim[0],
-                                init_func=init_func,W=W[0],b=b[0]))
-        self.add_layer(ActLayer(act_func))
+                                init_func=self.init_func,W=W[0],b=b[0],normalize=self.normalize,alpha=self.alpha))
+        self.add_layer(ActLayer(self.act_func))
 
         for i in range(1,n_layers):
             self.add_layer(FCLayer( input_size=hidden_dim[i-1],output_size=hidden_dim[i],
-                                    init_func=init_func,W=W[i],b=b[i]))
-            self.add_layer(ActLayer(act_func))
+                                    init_func=self.init_func,W=W[i],b=b[i],normalize=self.normalize,alpha=self.alpha))
+            self.add_layer(ActLayer(self.act_func))
 
         self.add_layer(FCLayer( input_size=hidden_dim[-1],output_size=nClasses,
-                                init_func=init_func,W=W[-1],b=b[-1]))
+                                init_func=self.init_func,W=W[-1],b=b[-1],normalize=False,alpha=self.alpha))
     
 
     def add_layer(self, layer):
@@ -64,14 +78,7 @@ class Network:
         print("Added layer %d : %s" % (layerIdx,layer.name))
         self.layers.append(layer)
     
-    def set_loss(self, loss_func, loss_prime_func):
-        self.loss_func = loss_func
-        self.loss_prime_func = loss_prime_func
-
-    def set_cost(self, cost_func):
-        self.cost_func = cost_func
-
-    def forward_prop(self, input_data,key="Training"):
+    def forward_prop(self, input_data,key="Training",prediction=False):
         """ Runs data through network and softmax 
             Returns matrix P of dimension k x N """
         
@@ -79,7 +86,7 @@ class Network:
         output = input_data
         
         for layer in self.layers:
-            output = layer.forward_pass(output)
+            output = layer.forward_pass(output,prediction)
             
         output = softMax(output)
 
@@ -125,7 +132,7 @@ class Network:
 
             epoch_steps = steps_per_ep if (((tot_steps - t) // steps_per_ep) > 0 ) else (tot_steps % steps_per_ep) 
             
-            bar_range = trange(epoch_steps) # Gives nice progress bar
+            bar_range = trange(epoch_steps,leave=False) # Gives nice progress bar
 
             for step in bar_range:
                 t = epoch*epoch_steps + step
@@ -148,6 +155,13 @@ class Network:
 
             bar_range.close()
 
+    def set_loss(self, loss_func, loss_prime_func):
+        self.loss_func = loss_func
+        self.loss_prime_func = loss_prime_func
+
+    def set_cost(self, cost_func):
+        self.cost_func = cost_func
+
     def compute_loss(self, Y, key="Training"):
         
         l = self.loss_func(Y,self.P[key],self.nBatch)
@@ -161,15 +175,13 @@ class Network:
         self.cost[key].append(J)
     
     def compute_accuracy(self, X, y, key="Training"):
-        N = np.shape(X)[1]
+        N = len(y)
 
-        self.forward_prop(X,key)
-        
-        guess = np.argmax(self.P[key],axis=0)
+        guess = self.predict(X,y,key)
+
         n_correct = sum(guess == y)
         
         self.accuracy[key].append(n_correct/N)
-
                 
     def save_pars(self):
         self.weights.append(self.get_weights())
@@ -177,7 +189,6 @@ class Network:
 
     def get_pars(self):
         return self.weights , self.biases
-
     
     def get_weights(self):
         weights = {}
@@ -197,19 +208,32 @@ class Network:
 
         return biases
 
-    def get_fcIdxs(self):
-        FCidx = []
-        
+    def get_gammas(self):
+        gammas = {}
+
         for layer in self.layers:
             if type(layer) == FCLayer:
-                FCidx.append(layer.layerIdx)
-        
-        return FCidx
+                gammas[layer.layerIdx] = layer.gamma
+
+        return gammas
+
+    def get_betas(self):
+        betas = {}
+
+        for layer in self.layers:
+            if type(layer) == FCLayer:
+                betas[layer.layerIdx] = layer.beta
+
+        return betas
 
     def checkpoint(self,X,Y,y,key):
-        self.forward_prop(X,key)
+        self.forward_prop(X,key,prediction=True)
         self.compute_loss(Y,key)
         self.compute_cost(key)
         self.compute_accuracy(X,y,key)
-    
 
+    def predict(self,X,y,key):
+        self.forward_prop(X,key,prediction=True)
+        prediction = np.argmax(self.P[key],axis=0)
+
+        return prediction

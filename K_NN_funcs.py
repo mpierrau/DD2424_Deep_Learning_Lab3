@@ -1,6 +1,6 @@
-from K_NN_layer_class import FCLayer
 import numpy as np
 import math
+from scipy.linalg import fractional_matrix_power
 
 def relu(input_data):
     # ReLu activation function
@@ -101,3 +101,7 @@ def regular_init(in_dim,out_dim):
     mat = np.random.normal(0,1/np.sqrt(in_dim),(out_dim,in_dim))
 
     return mat
+
+def identity(*args):
+    # Specific identity function for returning first arg without change
+    return args[0]

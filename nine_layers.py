@@ -37,10 +37,7 @@ n_s = 5*45000/nBatch
 layerDims = [50, 30, 20, 20, 10, 10, 10, 10]
 
 net = Network()
-net.build_layers(d,k,layerDims,relu,he_init)
-
-net.set_loss(cross_entropy, cross_entropy_prime)
-net.set_cost(L2_cost)
+net.build_layers(d,k,layerDims)
 
 net.fit(Xin,Yin,yin,cycles,n_s,nBatch,eta,lamda,recPerEp)
 
