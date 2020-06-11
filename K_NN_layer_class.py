@@ -1,6 +1,7 @@
 # Base layer class
 import numpy as np 
 from numpy import random
+import copy
 
 class Layer:
 
@@ -37,12 +38,12 @@ class FCLayer(Layer):
         self.normalize = normalize
 
         # Pars for batch normalization
-        self.mu = None
-        self.v = None
+        self.batch_mu = None
+        self.batch_v = None
 
-        self.alpha = alpha # Weight for mu_avg and v_avg in weighted average
-        self.mu_avg = None
-        self.v_avg = None
+        self.alpha = alpha # Weight for avg_mu and avg_v in weighted average
+        self.avg_mu = None
+        self.avg_v = None
 
         self.beta = np.zeros((output_size,1))
         self.gamma = np.ones((output_size,1))
@@ -57,7 +58,12 @@ class FCLayer(Layer):
                     
         self.W = self.init_func(in_dim=self.nCols,out_dim=self.nRows) if W is None else W
         self.b = np.zeros((self.nRows,1)) if b is None else b
-    
+
+        self.normalize_fw_func = None
+        self.normalize_bw_func = None
+        self.normalize_grad_func = None
+        self.normalize_update_pars_func = None
+
         if self.normalize == True:
             self.normalize_fw_func = self.batchNormFProp
             self.normalize_bw_func = self.batchNormBProp
@@ -69,32 +75,41 @@ class FCLayer(Layer):
             self.normalize_grad_func = lambda *args : None
             self.normalize_update_pars_func = lambda eta : [self.gamma,self.beta]
 
-    def forward_pass(self, input_data,prediction=False):
-
+    def forward_pass(self, input_data,prediction=False,debug=False):
         self.input = input_data
         self.batchSize = input_data.shape[1]
-
         self.unnorm_score = np.dot(self.W,self.input) + self.b
+        
+        if self.avg_mu is None:
+            avg_mu = self.unnorm_score.mean(axis=1)
+            self.avg_mu = avg_mu
+        if self.avg_v is None:
+            avg_v = self.unnorm_score.var(axis=1,ddof=0)
+            self.avg_v = avg_v
 
         if prediction==True:
-            mu = self.mu_avg
-            v = self.v_avg
+            mu = self.avg_mu
+            v = self.avg_v
         else:
-            self.mu = self.unnorm_score.mean(axis=1)
-            self.v = self.unnorm_score.var(axis=1,ddof=0) # Biased estimator
+            self.batch_mu = self.unnorm_score.mean(axis=1)
+            self.batch_v = self.unnorm_score.var(axis=1,ddof=0) # Biased estimator
             
-            # For very first batch we initialize mu_avg as mu and v_avg as v, else weighted average.
-            self.mu_avg = self.mu if self.mu_avg is None else np.average([self.mu_avg,self.mu],axis=0,weights=(self.alpha,1-self.alpha))
-            self.v_avg = self.v if self.v_avg is None else np.average([self.v_avg,self.v],axis=0,weights=(self.alpha,1-self.alpha))
+            # For very first batch we initialize avg_mu as mu and avg_v as v, else weighted average.
+            avg_mu = np.average([self.avg_mu,self.batch_mu],axis=0,weights=(self.alpha,1-self.alpha))
+            avg_v = np.average([self.avg_v,self.batch_v],axis=0,weights=(self.alpha,1-self.alpha))
+            
+            self.avg_mu = avg_mu
+            self.avg_v = avg_v
 
-            mu = self.mu
-            v = self.v
-
+            mu = self.batch_mu
+            v = self.batch_v
+        
         self.normalize_fw_func(mu,v)
 
         s_tilde = self.gamma*self.norm_score + self.beta
-        self.output = s_tilde
         
+        self.output = s_tilde
+
         return self.output
     
     def backward_pass(self, G, eta):
@@ -102,7 +117,7 @@ class FCLayer(Layer):
         """ This here pass has a packpropagated gradient for dJdW which originates both from the hidden layer
          and from the regularization term. 
          We also compute and update the W and b parameter here """
-        
+
         self.compute_norm_grads(G)
 
         G *= self.gamma
@@ -112,9 +127,9 @@ class FCLayer(Layer):
         newG = np.dot(self.W.T,G)
 
         self.compute_grads(G)
+
         self.update_pars(eta)
 
-        # Return gradient to pass on upwards
         return newG
     
     def compute_grads(self, G):
@@ -139,7 +154,6 @@ class FCLayer(Layer):
 
         # Update scale and shift parameters
         newGamma , newBeta = self.normalize_update_pars_func(eta)
-
         self.gamma = newGamma
         self.beta = newBeta
 
@@ -147,23 +161,16 @@ class FCLayer(Layer):
         dJdgamma = np.sum((G * self.norm_score),axis=1) / self.batchSize
         dJdbeta = np.sum(G, axis=1) / self.batchSize
 
-        self.gradGamma = dJdgamma
-        self.gradBeta = dJdbeta
+        self.gradGamma = dJdgamma.reshape((len(dJdgamma),1))
+        self.gradBeta = dJdbeta.reshape((len(dJdbeta),1))
 
-    def batchNormFProp(self,*argv):
-
-        if len(argv) == 0:
-            mu = self.mu
-            v = self.v
-        else:
-            mu = argv[0]
-            v = argv[1]
-        
+    def batchNormFProp(self,mu,v):
         eps = np.finfo(float).eps
-        sigma = v
-        sigma += eps
-        sigma **= -.5
-        norm_score = np.diag(sigma)@(self.unnorm_score - mu[:,None])
+
+        sigma = v**(-.5)
+
+        norm_score = np.diag(sigma)@(self.unnorm_score - mu[:,None]) + eps
+        
         self.norm_score = norm_score
     
     def batch_Non_NormFProp(self,*argv):
@@ -179,13 +186,13 @@ class FCLayer(Layer):
 
         eps = np.finfo(float).eps
 
-        sig1 = ((self.v + eps)**(-.5))
-        sig2 = ((self.v + eps)**(-1.5))
+        sig1 = ((self.batch_v + eps)**(-.5))
+        sig2 = ((self.batch_v + eps)**(-1.5))
 
         G1 = G*sig1[:,None]
         G2 = G*sig2[:,None]
 
-        D = self.unnorm_score - self.mu[:,None]
+        D = self.unnorm_score - self.batch_mu[:,None]
         c = np.sum(G2*D,axis=1)
 
         G = G1 - (np.sum(G1,axis=1) / N)[:,None] - (D*c[:,None] / N )
@@ -196,11 +203,16 @@ class FCLayer(Layer):
         return G
 
     def updateParsNorm(self,eta):
-        newGamma = self.gamma - eta * self.gradGamma[:,None]
-        newBeta = self.beta - eta * self.gradBeta[:,None]
+        newGamma = self.gamma - eta * self.gradGamma
+        newBeta = self.beta - eta * self.gradBeta
         
         return newGamma , newBeta
 
+    def get_batch_v(self):
+        return self.batch_v
+
+    def get_avg_v(self):
+        return self.avg_v
 
 class ActLayer(Layer):
 
@@ -208,7 +220,7 @@ class ActLayer(Layer):
         self.act_func = act_func
         self.name = "Activation Layer" if name is None else name
 
-    def forward_pass(self, input_data,prediction=False):
+    def forward_pass(self, input_data,prediction=False,debug=False):
         self.input = input_data
         self.output = self.act_func(self.input)
         # Apply batch normalization here

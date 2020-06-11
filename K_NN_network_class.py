@@ -72,13 +72,15 @@ class Network:
                                 init_func=self.init_func,W=W[-1],b=b[-1],normalize=False,alpha=self.alpha))
     
 
+        print("\n---------------DONE---------------\n")
+
     def add_layer(self, layer):
         layerIdx = len(self.layers)
         layer.layerIdx = layerIdx
         print("Added layer %d : %s" % (layerIdx,layer.name))
         self.layers.append(layer)
     
-    def forward_prop(self, input_data,key="Training",prediction=False):
+    def forward_prop(self, input_data,key="Training",prediction=False,debug=False):
         """ Runs data through network and softmax 
             Returns matrix P of dimension k x N """
         
@@ -86,11 +88,13 @@ class Network:
         output = input_data
         
         for layer in self.layers:
-            output = layer.forward_pass(output,prediction)
+            output = layer.forward_pass(output,prediction,debug=debug)
             
         output = softMax(output)
 
         self.P[key] = output
+
+       
 
     def backward_prop(self, input_labels, eta):
 
@@ -225,7 +229,7 @@ class Network:
                 betas[layer.layerIdx] = layer.beta
 
         return betas
-
+   
     def checkpoint(self,X,Y,y,key):
         self.forward_prop(X,key,prediction=True)
         self.compute_loss(Y,key)

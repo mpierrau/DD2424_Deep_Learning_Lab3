@@ -23,14 +23,23 @@ Xin = [Xtrain,Xval]
 Yin = [Ytrain,Yval]
 yin = [ytrain,yval]
 
-d , N = Xtrain.shape
+Xred , Yred , yred = reduceDims(Xtrain,Ytrain,ytrain,10,5)
+
+d , N = Xred.shape
+k = Yred.shape[0]
+
+"""d , N = Xtrain.shape
 k = np.shape(Ytrain)[0]
+"""
+dims = [15,10]
 
-dims = [50,20]
-
-net = Network(normalize=False)
+net = Network(normalize=True,alpha=0.5)
 net.build_layers(d,k,dims)
-net.fit(Xin,Yin,yin,2,50,100,[1e-5,1e-1],.001,10,seed=1337)
+
+net.forward_prop(Xred)
+net.backward_prop(Yred,1e-2)
+
+#net.fit(Xin,Yin,yin,2,50,100,[1e-5,1e-1],.001,10,seed=1337)
 
 
 netNorm = Network(normalize=True)
@@ -47,10 +56,3 @@ net.accuracy["Test"]
 
 netNorm.compute_accuracy(Xtest,ytest,key="Test")
 netNorm.accuracy["Test"]
-
-numbers = [[1, 2, 3],[4,5,6]]
-letters = [["A", "B", "C"],["D","E","F"]]
-
-for numbers_list, letters_list in zip(numbers, letters):
-    for numbers_value , letters_value in zip(numbers_list, letters_list):
-        print(numbers_value, letters_value)
