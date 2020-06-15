@@ -102,6 +102,15 @@ def regular_init(in_dim,out_dim):
 
     return mat
 
+def normal_init(in_dim,out_dim, *args):
+    """ Initialize vectors/matrices from normal dist with mu mean, sigma variance """
+    mu = args[0]
+    sig = args[1]
+
+    mat = np.random.normal(mu,sig,(out_dim,in_dim))
+
+    return mat
+
 def identity(*args):
     # Specific identity function for returning first arg without change
     return args[0]

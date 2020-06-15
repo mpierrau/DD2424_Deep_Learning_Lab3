@@ -17,19 +17,51 @@ def montage(W,savename,foldername):
     plt.savefig(foldername + savename)
     fig.clf()
 
-def plotData(cost,labels,title,xlab,ylab,shift,savename,foldername,showPlots=False,savePlots=True):
-    x = np.linspace(0,len(cost[0])*shift,len(cost[0]))
-    fig , axs = plt.subplots()
-    for i in range(len(cost)):
-        axs.plot(x,cost[i],label=labels[i])
-    axs.set_xlabel(xlab)
-    axs.set_ylabel(ylab)
-    axs.set_title(title)
-    axs.legend()
+def plotCost(net,keys,savename,foldername,size=(10,5),showPlots=False,savePlots=True,title=None):
+    
+    plt.figure(figsize=size)
+
+    if title is None:
+        title = "Cost for %d-layer network with hidden dimensions %s \n using BN" % (len(net.layer_dims) + 1 , net.layer_dims)
+
+    for key in keys:
+        steps = np.linspace(0,2*net.n_s*net.n_cycles,len(net.cost[key]))
+        plt.plot(steps,net.cost[key],label=key)
+    plt.xlabel("Steps")
+    plt.ylabel("Cost")
+    plt.title(title)
+    plt.legend()
+    
     if savePlots:
-        fig.savefig(foldername + savename)
+        plt.savefig(foldername + savename)
     if showPlots:
         plt.show()
+    
+    plt.clf()
+
+
+def plotAcc(net,keys,savename,foldername,size=(10,5),showPlots=False,savePlots=True,title=None):
+
+    plt.figure(figsize=size)
+
+    if title is None:
+        title = "Accuracy for %d-layer network with hidden dimensions %s \n using BN" % (len(net.layer_dims) + 1 , net.layer_dims)
+    
+    for key in keys:
+        steps = np.linspace(0,2*net.n_s*net.n_cycles,len(net.accuracy[key]))
+        plt.plot(steps,net.accuracy[key],label=key)
+    
+    plt.xlabel("Steps")
+    plt.ylabel("Accuracy")
+    plt.title(title)
+    plt.legend()
+    
+    if savePlots:
+        plt.savefig(foldername + savename)
+    if showPlots:
+        plt.show()
+
+    plt.clf()
 
 def custPlot(data1,data2,title,xlab,ylab,n_s,cycles):
 
@@ -43,27 +75,3 @@ def custPlot(data1,data2,title,xlab,ylab,n_s,cycles):
     plt.legend()
 
     return plt
-
-
-def plotCost(net,keys=["Training","Validation"]):
-    for key in keys:
-        steps = np.linspace(0,2*net.n_s*net.cycles,len(net.cost[key]))
-        plt.plot(steps,net.cost[key],label=key)
-    
-    plt.xlabel("Steps")
-    plt.ylabel("Cost")
-    plt.title("Cost for %d-layer network with hidden dimensions %s \n using BN" % (len(net.layer_dims) + 1 , net.layer_dims))
-    plt.legend()
-    plt.show()
-
-
-def plotAcc(net,keys=["Training","Validation"]):
-    for key in keys:
-        steps = np.linspace(0,2*net.n_s*net.cycles,len(net.cost[key]))
-        plt.plot(steps,net.accuracy[key],label=key)
-    
-    plt.xlabel("Steps")
-    plt.ylabel("Accuracy")
-    plt.title("Accuracy for %d-layer network with hidden dimensions %s \n using BN" % (len(net.layer_dims) + 1 , net.layer_dims))
-    plt.legend()
-    plt.show()

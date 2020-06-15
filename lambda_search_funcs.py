@@ -3,16 +3,21 @@ from K_NN_network_class import Network
 import csv
 import tqdm
 
-def lambdaSearch(X, Y, y, dims, cycles, n_s, nBatch, eta, lambdaMin, lambdaMax, nLambda, randomLambda, recPerEp, fileName, debug=False):
+def lambdaSearch(X, Y, y, dims, cycles, n_s, nBatch, eta, lambdaMin, lambdaMax, nLambda, randomLambda, logScale, recPerEp, fileName,seed=None):
     # Do a coarse search on nLambda random lambda values between lambdaMin and lambdaMax
     # to find ballbark of good lambdas for our model.
+    
+    fileName = fileName + '.csv'
 
     if randomLambda:
         l = lambdaMin + (lambdaMax - lambdaMin)*np.random.rand(nLambda)
     else:
         l = np.linspace(lambdaMin,lambdaMax,nLambda)
 
-    lamda = 10**l
+    if logScale:
+        lamda = 10**l
+    else:
+        lamda = l
 
     print("Lambdas generated: ", lamda)
 
@@ -29,13 +34,13 @@ def lambdaSearch(X, Y, y, dims, cycles, n_s, nBatch, eta, lambdaMin, lambdaMax, 
 
 
     d = X[0].shape[0]
-    k = len(y[0])
+    k = Y[0].shape[0]
     
     for tmp_lamda in tqdm.tqdm(lamda):
 
         net = Network()
-        net.build_layers(d,k,dims)
-        net.fit(X,Y,y,cycles,n_s,nBatch,eta,tmp_lamda,recPerEp)
+        net.build_layers(d,k,dims,verbose=False)
+        net.fit(X,Y,y,cycles,n_s,nBatch,eta,tmp_lamda,recPerEp,seed=seed)
 
         valAcc = net.accuracy["Validation"]
         valCost = net.cost["Validation"]

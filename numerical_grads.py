@@ -4,10 +4,10 @@ from K_NN_funcs import L2_cost , cross_entropy , cross_entropy_prime , relu
 from K_NN_network_class import Network
 from K_NN_layer_class import FCLayer , ActLayer
 import sys
-
+from tqdm import tqdm , trange
 """ Test function for numerical gradient computation """
 
-def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.01, fast=True, debug=False, eta=1e-5, burnIn=10,normalize=False,alpha=0.9):
+def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.01, fast=True, debug=False, eta=1e-5, burnIn=10,normalize=False,alpha=0.9,net=None):
     # Compares results of analytically computed
     # gradients to numerical approximations to
     # ensure correctness.
@@ -20,30 +20,33 @@ def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.
     
     if nBatch == None:
         nBatch = N
-    
-    print("Building anNet : \n")
 
-    anNet = Network(normalize=normalize,alpha=alpha)
-    anNet.build_layers(d,k,layerDims)
-    
-    print("\nBurning in %d steps...\n" % burnIn)
-    
-    anNet.nBatch = nBatch
-    anNet.eta = [eta,eta]
-    anNet.lamda = lamda
-    for i in range(burnIn-1):
-        print("Burn in step ", (i+1))
-        anNet.forward_prop(X,debug=False)
-        anNet.backward_prop(Y, anNet.eta[0])
+    if net is None:
+        print("Building anNet : \n")
 
-    
-    anNet.compute_loss(Y)
-    anNet.compute_cost()
-    
-    print("Burn in done")
+        anNet = Network(normalize=normalize,alpha=alpha)
+        anNet.build_layers(d,k,layerDims)
+        
+        print("\nBurning in %d steps...\n" % burnIn)
+        
+        anNet.nBatch = nBatch
+        anNet.eta = [eta,eta]
+        anNet.lamda = lamda
+        for i in range(burnIn-1):
+            print("Burn in step ", (i+1))
+            anNet.forward_prop(X,debug=False)
+            anNet.backward_prop(Y, anNet.eta[0])
+
+        
+        anNet.compute_loss(Y)
+        anNet.compute_cost()
+        
+        print("Burn in done")
+    else:
+        print("Net provided, copying net...")
+        anNet = copy.deepcopy(net)
 
     anNet.eta = [0,0]
-
     print("Copying net for test...")
 
     test_net = copy.deepcopy(anNet)
@@ -51,7 +54,7 @@ def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.
     print("Computing grads using %s algorithm...\n" % ("fast but inaccurate" if fast else "slow but accurate"))
     numGrads , numNet = computeGradsNum(test_net,X,Y,y,h,fast)
     print("Numerical grads computed!\n")
-    anNet.forward_prop(X,debug=False)
+    anNet.forward_prop(X)
     anNet.backward_prop(Y, anNet.eta[0])
 
     anGrads = {"W":{},"b":{}}
@@ -124,11 +127,11 @@ def computeGradsNum(net, X, Y, y, h=1e-6, fast=False):
         # Compute grads for all b
         biases = net.get_biases()
 
-        for k,lay_idx in enumerate(biases.keys()):
+        for k,lay_idx in enumerate(tqdm(biases.keys(),ascii=True,desc="b")):
             numGrads["b"][2*k] = np.zeros(biases[lay_idx].shape)
             #grads_b.append(np.zeros(biases[lay_idx].shape))
-            
-            for i in range(numGrads["b"][2*k].shape[0]):
+            this_range = trange(numGrads["b"][2*k].shape[0],leave=False)
+            for i in this_range:
                 grad_approx = approx_func("b",lay_idx,i,0,c)
                 numGrads["b"][2*k][i,0] = grad_approx
 
@@ -138,11 +141,11 @@ def computeGradsNum(net, X, Y, y, h=1e-6, fast=False):
         # Compute grads for all W
         weights = net.get_weights()
 
-        for k,lay_idx in enumerate(weights.keys()):
+        for k,lay_idx in enumerate(tqdm(weights.keys(),ascii=True,desc="W")):
             numGrads["W"][2*k] = np.zeros(weights[lay_idx].shape)
             #grads_W.append(np.zeros(weights[lay_idx].shape))
-
-            for i in range(numGrads["W"][2*k].shape[0]):
+            this_range = trange(numGrads["W"][2*k].shape[0],leave=False)
+            for i in this_range:
                 for j in range(numGrads["W"][2*k].shape[1]):
                     grad_approx = approx_func("W", lay_idx, i, j, c)
                     numGrads["W"][2*k][i,j] = grad_approx
@@ -150,17 +153,19 @@ def computeGradsNum(net, X, Y, y, h=1e-6, fast=False):
             net.layers[lay_idx].gradW = numGrads["W"][2*k]
 
         if net.normalize:
+            print("Normalize == True , computing Gamma and Beta!")
+
             numGrads["gamma"] = {}
             numGrads["beta"] = {}
 
             # Compute grads for all gamma
             gammas = net.get_gammas()
 
-            for k,lay_idx in enumerate(gammas.keys()):
+            for k,lay_idx in enumerate(tqdm(gammas.keys(),ascii=True,desc="gamma")):
                 numGrads["gamma"][2*k] = np.zeros(gammas[lay_idx].shape)
                 #grads_gamma.append(np.zeros(gammas[lay_idx].shape))
-                
-                for i in range(numGrads["gamma"][2*k].shape[0]):
+                this_range = trange(numGrads["gamma"][2*k].shape[0],leave=False)
+                for i in this_range:
                     grad_approx = approx_func("gamma",lay_idx,i,0,c)
                     numGrads["gamma"][2*k][i,0] = grad_approx
 
@@ -169,9 +174,10 @@ def computeGradsNum(net, X, Y, y, h=1e-6, fast=False):
             # Compute grads for all beta
             betas = net.get_betas()
 
-            for k,lay_idx in enumerate(betas.keys()):
+            for k,lay_idx in enumerate(tqdm(betas.keys(),ascii=True,desc="beta")):
                 numGrads["beta"][2*k] = np.zeros(betas[lay_idx].shape)
-                for i in range(numGrads["beta"][2*k].shape[0]):
+                this_range = trange(numGrads["beta"][2*k].shape[0])
+                for i in this_range:
                     grad_approx = approx_func("beta",lay_idx,i,0,c)
                     numGrads["beta"][2*k][i,0] = grad_approx
 
@@ -234,18 +240,6 @@ def update_el(net,el,layer_idx,el_idx_i,el_idx_j,h):
         net.layers[layer_idx].gamma[el_idx_i,el_idx_j] += h
     elif el == "beta":
         net.layers[layer_idx].beta[el_idx_i,el_idx_j] += h
-    else:
-        pass
-
-def reset_entries(net,el,layer_idx,el_idx_i,el_idx_j,h):
-    if el == "b":
-        net.layers[layer_idx].b[el_idx_i,el_idx_j] -= h
-    elif el == "W":
-        net.layers[layer_idx].W[el_idx_i,el_idx_j] -= h
-    elif el == "gamma":
-        net.layers[layer_idx].gamma[el_idx_i,el_idx_j] -= h
-    elif el == "beta":
-        net.layers[layer_idx].beta[el_idx_i,el_idx_j] -= h
     else:
         pass
 

@@ -37,7 +37,7 @@ n_s = 5*45000/nBatch
 
 layerDims = [50,50]
 
-net = Network()
+net = Network(normalize=False)
 net.build_layers(d,k,layerDims)
 
 net.fit(Xin,Yin,yin,cycles,n_s,nBatch,eta,lamda,recPerEp)

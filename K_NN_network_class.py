@@ -36,7 +36,7 @@ class Network:
         self.P = {"Training":None,"Validation":None}
 
 
-    def build_layers(self, data_dim, nClasses, hidden_dim,W=None, b=None):
+    def build_layers(self, data_dim, nClasses, hidden_dim,W=None, b=None,verbose=True):
 
         n_layers = len(hidden_dim)
         
@@ -52,35 +52,37 @@ class Network:
             for i in range(n_layers):
                 b.append(None)
         
-        print("\n----------------------------------\n")
-        print("-- Building Network with parameters --\n")
-        print("- Input dimension : %d \n- Number of classes : %d\n" % (data_dim,nClasses))
-        print("- Number of hidden layers: %d" % (len(hidden_dim)))
-        print("\t- Dims: ", end='')
-        for dim in hidden_dim:
-            print(dim, end=" ")
-        print("\n----------------------------------\n")
+        if verbose:
+            print("\n----------------------------------\n")
+            print("-- Building Network with parameters --\n")
+            print("- Input dimension : %d \n- Number of classes : %d\n" % (data_dim,nClasses))
+            print("- Number of hidden layers: %d" % (len(hidden_dim)))
+            print("\t- Dims: ", end='')
+            for dim in hidden_dim:
+                print(dim, end=" ")
+            print("\n----------------------------------\n")
 
 
         self.add_layer(FCLayer( input_size=data_dim,output_size=hidden_dim[0],
-                                init_func=self.init_func,W=W[0],b=b[0],normalize=self.normalize,alpha=self.alpha))
-        self.add_layer(ActLayer(self.act_func))
+                                init_func=self.init_func,W=W[0],b=b[0],normalize=self.normalize,alpha=self.alpha),verbose=verbose)
+        self.add_layer(ActLayer(self.act_func),verbose=verbose)
 
         for i in range(1,n_layers):
             self.add_layer(FCLayer( input_size=hidden_dim[i-1],output_size=hidden_dim[i],
-                                    init_func=self.init_func,W=W[i],b=b[i],normalize=self.normalize,alpha=self.alpha))
-            self.add_layer(ActLayer(self.act_func))
+                                    init_func=self.init_func,W=W[i],b=b[i],normalize=self.normalize,alpha=self.alpha),verbose=verbose)
+            self.add_layer(ActLayer(self.act_func),verbose=verbose)
 
         self.add_layer(FCLayer( input_size=hidden_dim[-1],output_size=nClasses,
-                                init_func=self.init_func,W=W[-1],b=b[-1],normalize=False,alpha=self.alpha))
+                                init_func=self.init_func,W=W[-1],b=b[-1],normalize=False,alpha=self.alpha),verbose=verbose)
     
+        if verbose:
+            print("\n---------------DONE---------------\n")
 
-        print("\n---------------DONE---------------\n")
-
-    def add_layer(self, layer):
+    def add_layer(self, layer, verbose=True):
         layerIdx = len(self.layers)
         layer.layerIdx = layerIdx
-        print("Added layer %d : %s" % (layerIdx,layer.name))
+        if verbose:
+            print("Added layer %d : %s" % (layerIdx,layer.name))
         self.layers.append(layer)
     
     def forward_prop(self, input_data,key="Training",prediction=False,debug=False):

@@ -80,6 +80,40 @@ def loadAllFiles(valSize):
     return training_data , validation_data
 
 
+def loadAllFiles2(valSize):
+    X1,Y1,y1 = loadBatch('data_batch_1')
+
+    X2,Y2,y2 = loadBatch('data_batch_2')
+
+    X3,Y3,y3 = loadBatch('data_batch_3')
+
+    X4,Y4,y4 = loadBatch('data_batch_4')
+
+    X5,Y5,y5 = loadBatch('data_batch_5')
+
+    N5 = np.shape(X5)[1]
+    
+    X5new = X5[:,:N5-valSize]
+    Y5new = Y5[:,:N5-valSize]
+    y5new = y5[:N5-valSize]
+
+    Xval = X5[:,N5-valSize:N5]
+    Yval = Y5[:,N5-valSize:N5]
+    yval = y5[N5-valSize:N5]
+
+    X = np.concatenate((X1,X2,X3,X4,X5new),axis=1)
+    Y = np.concatenate((Y1,Y2,Y3,Y4,Y5new),axis=1)
+    y = np.concatenate((y1,y2,y3,y4,y5new))
+    
+    XProc = preProc(X)
+    XvalProc = preProc(Xval)
+
+    Xin = [XProc,XvalProc]
+    Yin = [Y, Yval]
+    yin = [y, yval]
+
+    return Xin , Yin , yin
+
 def loadTestFiles():
     Xtest , Ytest , ytest = loadBatch('test_batch')
 
