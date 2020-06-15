@@ -15,6 +15,11 @@ lamda = 0
 
 errs, anGrads, numGrads, anNet, numNet = testGrads(X,Y,y,layerDims=dims,
                                                 lamda=lamda,h=1e-4,init_func = regular_init,
-                                                fast=False,burnIn=10,normalize=False,alpha=0.5)
+                                                fast=False,burnIn=10,normalize=True,alpha=0.5)
 
 errs
+
+
+# from numerical_grads import relErr
+#relErr(anNet.layers[0].gradW,numNet.layers[0].gradW,eps=1e-5)
+

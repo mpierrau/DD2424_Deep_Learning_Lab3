@@ -23,36 +23,35 @@ Xin = [Xtrain,Xval]
 Yin = [Ytrain,Yval]
 yin = [ytrain,yval]
 
-Xred , Yred , yred = reduceDims(Xtrain,Ytrain,ytrain,10,5)
+XredTr , YredTr , yredTr = reduceDims(Xtrain,Ytrain,ytrain,20,5)
+XredVal , YredVal , yredVal = reduceDims(Xval,Yval,yval,20,5)
 
-d , N = Xred.shape
-k = Yred.shape[0]
 
-"""d , N = Xtrain.shape
+d , N = XredTr.shape
+k = YredTr.shape[0]
+
+"""
+d , N = Xtrain.shape
 k = np.shape(Ytrain)[0]
 """
+
 dims = [15,10]
 
-net = Network(normalize=True,alpha=0.5)
+net = Network(normalize=True)
 net.build_layers(d,k,dims)
 
-net.forward_prop(Xred)
-net.backward_prop(Yred,1e-2)
+net.forward_prop(XredTr)
+net.backward_prop(YredTr, 1e-3)
 
-#net.fit(Xin,Yin,yin,2,50,100,[1e-5,1e-1],.001,10,seed=1337)
+"""for _ in range(100): 
+    net.forward_prop(Xred)
+    net.backward_prop(Yred,1e-2)"""
+
+net.fit([XredTr,XredVal],[YredTr,YredVal],[yredTr,yredVal],2,50,1,[1e-5,1e-1],.001,1,seed=1337)
 
 
-netNorm = Network(normalize=True)
+netNorm = Network(normalize=True,alpha=0.5)
 netNorm.build_layers(d,k,dims)
-netNorm.fit(Xin,Yin,yin,2,50,100,[1e-5,1e-1],.001,10,seed=1337)
 
 
-#net.layers[0].norm_score
-#net.layers[0].unnorm_score
-
-net.compute_accuracy(Xtest,ytest,key="Test")
-net.accuracy["Test"]
-
-
-netNorm.compute_accuracy(Xtest,ytest,key="Test")
-netNorm.accuracy["Test"]
+#netNorm.fit(Xin,Yin,yin,2,50,100,[1e-5,1e-1],.001,10,seed=1337)

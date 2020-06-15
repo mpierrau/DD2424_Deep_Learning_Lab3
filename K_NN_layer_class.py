@@ -115,8 +115,9 @@ class FCLayer(Layer):
     def backward_pass(self, G, eta):
 
         """ This here pass has a packpropagated gradient for dJdW which originates both from the hidden layer
-         and from the regularization term. 
-         We also compute and update the W and b parameter here """
+        and from the regularization term. 
+        We also compute and update the W and b parameter here """
+
 
         self.compute_norm_grads(G)
 
@@ -129,7 +130,7 @@ class FCLayer(Layer):
         self.compute_grads(G)
 
         self.update_pars(eta)
-
+        
         return newG
     
     def compute_grads(self, G):
@@ -145,6 +146,15 @@ class FCLayer(Layer):
         self.gradW = dJdW
         self.gradb = dJdb
 
+
+    def compute_norm_grads(self,G):
+        dJdgamma = np.sum((G * self.norm_score),axis=1) / self.batchSize
+        dJdbeta = np.sum(G, axis=1) / self.batchSize
+
+        self.gradGamma = dJdgamma.reshape((len(dJdgamma),1))
+        self.gradBeta = dJdbeta.reshape((len(dJdbeta),1))
+
+
     def update_pars(self, eta):
         newW = self.W - eta * self.gradW
         newb = self.b - eta * self.gradb
@@ -157,13 +167,14 @@ class FCLayer(Layer):
         self.gamma = newGamma
         self.beta = newBeta
 
-    def compute_norm_grads(self,G):
-        dJdgamma = np.sum((G * self.norm_score),axis=1) / self.batchSize
-        dJdbeta = np.sum(G, axis=1) / self.batchSize
 
-        self.gradGamma = dJdgamma.reshape((len(dJdgamma),1))
-        self.gradBeta = dJdbeta.reshape((len(dJdbeta),1))
+    def updateParsNorm(self,eta):
+        newGamma = self.gamma - eta * self.gradGamma
+        newBeta = self.beta - eta * self.gradBeta
+        
+        return newGamma , newBeta
 
+    
     def batchNormFProp(self,mu,v):
         eps = np.finfo(float).eps
 
@@ -202,11 +213,6 @@ class FCLayer(Layer):
     def batch_Non_NormBProp(self,G):
         return G
 
-    def updateParsNorm(self,eta):
-        newGamma = self.gamma - eta * self.gradGamma
-        newBeta = self.beta - eta * self.gradBeta
-        
-        return newGamma , newBeta
 
     def get_batch_v(self):
         return self.batch_v

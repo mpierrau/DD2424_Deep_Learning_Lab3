@@ -21,6 +21,7 @@ class Network:
         
         self.input = None
         self.layers = []
+        self.layer_dims = []
 
         self.act_func = act_func
         self.loss_func = loss_func
@@ -39,6 +40,8 @@ class Network:
 
         n_layers = len(hidden_dim)
         
+        self.layer_dims = hidden_dim
+
         if W == None:
             W = []
             for i in range(n_layers):

@@ -185,7 +185,7 @@ def finite_diff(net,X,Y,el,layer_idx,el_idx_i,el_idx_j,c,h):
 
     update_el(net,el,layer_idx,el_idx_i,el_idx_j,h)
 
-    net.forward_prop(X,prediction=True)
+    net.forward_prop(X,prediction=False)
     net.compute_loss(Y)
 
     net.compute_cost()
@@ -204,7 +204,7 @@ def centered_diff(net,X,Y,el,layer_idx,el_idx_i,el_idx_j,h):
     
     update_el(net,el,layer_idx,el_idx_i,el_idx_j,-h)
         
-    net.forward_prop(X,prediction=True)
+    net.forward_prop(X,prediction=False)
     net.compute_loss(Y)
     net.compute_cost()
 
@@ -212,7 +212,7 @@ def centered_diff(net,X,Y,el,layer_idx,el_idx_i,el_idx_j,h):
 
     update_el(net,el,layer_idx,el_idx_i,el_idx_j,2*h)
     
-    net.forward_prop(X,prediction=True)
+    net.forward_prop(X,prediction=False)
     net.compute_loss(Y)
     net.compute_cost()
 
@@ -249,12 +249,14 @@ def reset_entries(net,el,layer_idx,el_idx_i,el_idx_j,h):
     else:
         pass
 
-def relErr(Wan,Wnum,eps=1e-17):
+def relErr(Wan,Wnum,eps=1e-7):
     # Computes mean relative error between Jacobians Wan and Wnum
-    #return np.mean(np.abs(Wan - Wnum)/np.maximum(np.abs(Wan),np.abs(Wnum)))
+    
     if np.shape(Wan) != np.shape(Wnum):
         print("Wan and Wnum have different dimensions!")
         print("Wan: %s != Wnum: %s" % (np.shape(Wan),np.shape(Wnum)))
-
-    relErr = np.mean(np.abs(Wan - Wnum)/np.maximum(eps,(np.abs(Wan) + np.abs(Wnum))))
+    
+    relErr = np.mean(np.abs(Wan - Wnum)/np.maximum(np.abs(Wan),np.abs(Wnum)))
+    #relErr = np.mean(np.abs(Wan - Wnum)/np.maximum(eps,(np.abs(Wan) + np.abs(Wnum))))
     return relErr
+

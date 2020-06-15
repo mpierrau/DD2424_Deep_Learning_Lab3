@@ -31,7 +31,7 @@ def plotData(cost,labels,title,xlab,ylab,shift,savename,foldername,showPlots=Fal
     if showPlots:
         plt.show()
 
-def custPlot(data1,data2,title,xlab,ylab,n_s,cycles)
+def custPlot(data1,data2,title,xlab,ylab,n_s,cycles):
 
     steps1 = np.linspace(0,2*n_s*cycles,len(data1))
     steps2 = np.linspace(0,2*n_s*cycles,len(data2))
@@ -43,3 +43,27 @@ def custPlot(data1,data2,title,xlab,ylab,n_s,cycles)
     plt.legend()
 
     return plt
+
+
+def plotCost(net,keys=["Training","Validation"]):
+    for key in keys:
+        steps = np.linspace(0,2*net.n_s*net.cycles,len(net.cost[key]))
+        plt.plot(steps,net.cost[key],label=key)
+    
+    plt.xlabel("Steps")
+    plt.ylabel("Cost")
+    plt.title("Cost for %d-layer network with hidden dimensions %s \n using BN" % (len(net.layer_dims) + 1 , net.layer_dims))
+    plt.legend()
+    plt.show()
+
+
+def plotAcc(net,keys=["Training","Validation"]):
+    for key in keys:
+        steps = np.linspace(0,2*net.n_s*net.cycles,len(net.cost[key]))
+        plt.plot(steps,net.accuracy[key],label=key)
+    
+    plt.xlabel("Steps")
+    plt.ylabel("Accuracy")
+    plt.title("Accuracy for %d-layer network with hidden dimensions %s \n using BN" % (len(net.layer_dims) + 1 , net.layer_dims))
+    plt.legend()
+    plt.show()
