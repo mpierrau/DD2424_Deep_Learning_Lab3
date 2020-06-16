@@ -8,6 +8,8 @@ from K_NN_network_class import Network
 import matplotlib.pyplot as plt
 import plot_funcs
 
+foldername = "Imgs/9_Layers/New_run/"
+
 Xin , Yin , yin = loadAllFiles2(valSize=5000)
 test_data = loadTestFiles()
 
@@ -24,31 +26,28 @@ n_s = 5*N/nBatch
 eta_min = 1e-5
 eta_max = 1e-1
 lamda = .005
-rec = 5
+rec_every = 100
 
-net = Network(normalize=True)
-net.build_layers(d,k,dims)
+net91 = Network(normalize=False)
+net91.build_layers(d,k,dims,lamda,par_seed=1337)
 
-net.fit(Xin,Yin,yin,n_cycles=cycles,n_s=n_s,nBatch=nBatch,eta=[eta_min,eta_max],lamda=lamda,recPerEp=rec)
+net91.fit(Xin,Yin,yin,n_cycles=cycles,n_s=n_s,nBatch=nBatch,eta=[eta_min,eta_max],rec_every=rec_every,shuffle_seed=1337,fileName="9_lay_no_BN_res")
 
-net.compute_accuracy(test_data[0],test_data[2],key="Test")
-net.accuracy["Test"]
+net91.compute_accuracy(test_data[0],test_data[2],key="Test")
+net91.accuracy["Test"]
+np.max(net91.accuracy["Training"])
 
-#reload(plot_funcs)
-plot_funcs.plotAcc(net,["Training","Validation"],"9_layers_BN_acc.png","Imgs/9_Layers/",size=(10,5))
-plot_funcs.plotCost(net,["Training","Validation"],"9_layers_BN_cost.png","Imgs/9_Layers/",size=(10,5))
+plot_funcs.plotAcc(net91,["Training","Validation"],"9_layers_acc_new_Non_BN.png",foldername,size=(7,5))
+plot_funcs.plotCost(net91,["Training","Validation"],"9_layers_cost_new_Non_BN.png",foldername,size=(7,5))
 
+net92 = Network(normalize=True)
+net92.build_layers(d,k,dims,lamda,par_seed=1337)
 
+net92.fit(Xin,Yin,yin,n_cycles=cycles,n_s=n_s,nBatch=nBatch,eta=[eta_min,eta_max],rec_every=rec_every,shuffle_seed=1337,fileName="9_lay_BN_res")
 
-# CHECKING IF ALPHA = 0.5 GIVES BETTER RESULTS
-alphaNet = Network(normalize=True,alpha=0.9)
-alphaNet.build_layers(d,k,dims)
+net92.compute_accuracy(test_data[0],test_data[2],key="Test")
+net92.accuracy["Test"]
+np.max(net92.accuracy["Training"])
 
-alphaNet.fit(Xin,Yin,yin,n_cycles=cycles,n_s=n_s,nBatch=nBatch,eta=[eta_min,eta_max],lamda=lamda,recPerEp=rec)
-
-alphaNet.compute_accuracy(test_data[0],test_data[2],key="Test")
-alphaNet.accuracy["Test"]
-
-#reload(plot_funcs)
-plot_funcs.plotAcc(alphaNet,["Training","Validation"],"9_layers_BN_alpha_.5_acc.png","Imgs/9_Layers/",size=(10,5))
-plot_funcs.plotCost(alphaNet,["Training","Validation"],"9_layers_BN_alpha_.5_cost.png","Imgs/9_Layers/",size=(10,5))
+plot_funcs.plotAcc(net92,["Training","Validation"],"9_layers_acc_new_BN.png",foldername,size=(7,5))
+plot_funcs.plotCost(net92,["Training","Validation"],"9_layers_cost_new_BN.png",foldername,size=(7,5))

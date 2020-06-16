@@ -5,15 +5,15 @@ from K_NN_funcs import he_init , regular_init
 from K_NN_network_class import Network
 import importlib
 
-reload(numerical_grads)
+#reload(numerical_grads)
 
 X1 , Y1 , y1 = loadAllFiles2(5000)
 
 redDim = 100
-redN = 20
+redN = 10
 
 Xtrain , Ytrain , ytrain = reduceDims(X1[0],Y1[0],y1[0],redDim,redN)
-Xval , Yval , yval = reduceDims(X1[1],Y1[0],y1[0],redDim,redN)
+Xval , Yval , yval = reduceDims(X1[1],Y1[0],y1[0],redDim,5)
 
 Xin = [Xtrain , Xval]
 Yin = [Ytrain , Yval]
@@ -22,12 +22,12 @@ yin = [ytrain , yval]
 dims = [50,30,20,20,10,10,10,10]
 
 net = Network(normalize=True)
-net.build_layers(redDim, 10, dims)
-net.fit(Xin,Yin,yin,n_cycles=1,n_s=100,nBatch=5,eta=[1e-1,1e-5],lamda=.005,recPerEp=1)
+net.build_layers(redDim, 10, dims,par_seed=1337)
+net.fit(Xin,Yin,yin,n_cycles=2,n_s=100,nBatch=5,eta=[1e-1,1e-5],lamda=.005,recPerEp=1)
 
 errs, anGrads, numGrads, anNet, numNet = numerical_grads.testGrads(Xtrain,Ytrain,ytrain,layerDims=dims,
-                                                lamda=.005,h=1e-4,init_func = regular_init,
-                                                fast=False,burnIn=10,normalize=True,alpha=0.9,net=net)
+                                                lamda=.005,h=1e-6,init_func = he_init,
+                                                fast=False,burnIn=100,normalize=True,net=None)
 
 errs
 

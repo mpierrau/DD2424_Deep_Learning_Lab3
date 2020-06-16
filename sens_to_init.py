@@ -8,8 +8,6 @@ from K_NN_network_class import Network
 import matplotlib.pyplot as plt
 import plot_funcs
 import tqdm
-from importlib import reload
-reload(plot_funcs)
 
 Xin , Yin , yin = loadAllFiles2(valSize=5000)
 test_data = loadTestFiles()
@@ -21,7 +19,7 @@ dims = [50,50]
 
 # Parameters
 
-cycles = 2
+cycles = 3
 nBatch = 100
 n_s = 5*N/nBatch
 eta_min = 1e-5
@@ -55,8 +53,8 @@ for i,sig in tqdm.tqdm(enumerate(sigmas)):
                 savename = "Lab3_Sensitivity_%f_Norm_acc.png" % sig, 
                 foldername = "Imgs/Sigma_sens/")
 
-    cost["Norm"][i] = normNet.cost["Validation"]
-    acc["Norm"][i] = normNet.accuracy["Validation"]
+    cost["Norm"][i] = normNet.cost["Validation"][-1]
+    acc["Norm"][i] = normNet.accuracy["Validation"][-1]
 
     # Fit model without normalization with specified sigma
     nonNormNet = Network(normalize=False)
@@ -74,17 +72,8 @@ for i,sig in tqdm.tqdm(enumerate(sigmas)):
                 foldername = "Imgs/Sigma_sens/",
                 title = "Accuracy for %d-layer network with hidden dimensions %s \n without BN" % (len(nonNormNet.layer_dims) + 1 , nonNormNet.layer_dims))
 
-    cost["Unnorm"][i] = nonNormNet.cost["Validation"]
-    acc["Unnorm"][i] = nonNormNet.accuracy["Validation"]
-
-for key in cost.keys():
-    print(key)
-    for layer in cost[key].keys():
-        print(layer)
-        if type(cost[key][layer]) is list:
-            cost[key][layer] = cost[key][layer][-1]
-        if type(acc[key][layer]) is list:
-            acc[key][layer] = acc[key][layer][-1]
+    cost["Unnorm"][i] = nonNormNet.cost["Validation"][-1]
+    acc["Unnorm"][i] = nonNormNet.accuracy["Validation"][-1]
 
 """
  acc

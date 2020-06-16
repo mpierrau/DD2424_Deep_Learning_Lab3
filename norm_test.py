@@ -1,9 +1,7 @@
 
 import numpy as np
-from data_handling import loadPreProcData , loadBatch , loadAllFiles , loadTestFiles , reduceDims
-from K_NN_funcs import  relu , cross_entropy , cross_entropy_prime , L2_cost
+from data_handling import loadPreProcData , reduceDims
 from K_NN_network_class import Network
-import matplotlib.pyplot as plt
 
 X,Y,y = loadPreProcData("data_batch_1","data_batch_2","data_batch_3")
 
@@ -23,8 +21,8 @@ Xin = [Xtrain,Xval]
 Yin = [Ytrain,Yval]
 yin = [ytrain,yval]
 
-XredTr , YredTr , yredTr = reduceDims(Xtrain,Ytrain,ytrain,20,5)
-XredVal , YredVal , yredVal = reduceDims(Xval,Yval,yval,20,5)
+XredTr , YredTr , yredTr = reduceDims(Xtrain,Ytrain,ytrain,100,100)
+XredVal , YredVal , yredVal = reduceDims(Xval,Yval,yval,100,100)
 
 
 d , N = XredTr.shape
@@ -35,23 +33,8 @@ d , N = Xtrain.shape
 k = np.shape(Ytrain)[0]
 """
 
-dims = [15,10]
+dims = [50,20]
 
 net = Network(normalize=True)
-net.build_layers(d,k,dims)
-
-net.forward_prop(XredTr)
-net.backward_prop(YredTr, 1e-3)
-
-"""for _ in range(100): 
-    net.forward_prop(Xred)
-    net.backward_prop(Yred,1e-2)"""
-
-net.fit([XredTr,XredVal],[YredTr,YredVal],[yredTr,yredVal],2,50,1,[1e-5,1e-1],.001,1,seed=1337)
-
-
-netNorm = Network(normalize=True,alpha=0.5)
-netNorm.build_layers(d,k,dims)
-
-
-#netNorm.fit(Xin,Yin,yin,2,50,100,[1e-5,1e-1],.001,10,seed=1337)
+net.build_layers(d,k,dims,.003)
+net.fit([XredTr,XredVal],[YredTr,YredVal],[yredTr,yredVal],2,50,20,[1e-5,1e-1],5,shuffle_seed=1337,write_to_file=True,fileName="testing")

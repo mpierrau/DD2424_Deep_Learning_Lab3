@@ -23,7 +23,7 @@ def lambdaSearch(X, Y, y, dims, cycles, n_s, nBatch, eta, lambdaMin, lambdaMax, 
 
     f = open(fileName,"w")
     
-    header = ['Lambda','Index','Accuracy','Cost','Loss',"EtaMin","EtaMax","Cycles","n_s","Batchsize"]
+    header = ['Lambda','Index','Accuracy','Cost','Loss',"EtaMin","EtaMax","Cycles","n_s","Batchsize","Seed"]
     
     with f:
         writer = csv.writer(f)
@@ -36,11 +36,13 @@ def lambdaSearch(X, Y, y, dims, cycles, n_s, nBatch, eta, lambdaMin, lambdaMax, 
     d = X[0].shape[0]
     k = Y[0].shape[0]
     
+    bestAcc = 0
+
     for tmp_lamda in tqdm.tqdm(lamda):
 
         net = Network()
-        net.build_layers(d,k,dims,verbose=False)
-        net.fit(X,Y,y,cycles,n_s,nBatch,eta,tmp_lamda,recPerEp,seed=seed)
+        net.build_layers(d,k,dims,lamda=tmp_lamda,verbose=False,par_seed=seed)
+        net.fit(X,Y,y,cycles,n_s,nBatch,eta,recPerEp,shuffle_seed=seed)
 
         valAcc = net.accuracy["Validation"]
         valCost = net.cost["Validation"]
@@ -50,7 +52,7 @@ def lambdaSearch(X, Y, y, dims, cycles, n_s, nBatch, eta, lambdaMin, lambdaMax, 
 
         eta_min , eta_max = eta
 
-        pars = [tmp_lamda,bestIdx,valAcc[bestIdx],valCost[bestIdx],valLoss[bestIdx],eta_min,eta_max,cycles,n_s,nBatch]
+        pars = [tmp_lamda,bestIdx,valAcc[bestIdx],valCost[bestIdx],valLoss[bestIdx],eta_min,eta_max,cycles,n_s,nBatch,seed]
 
         f = open(fileName,"a+")
 
@@ -59,3 +61,9 @@ def lambdaSearch(X, Y, y, dims, cycles, n_s, nBatch, eta, lambdaMin, lambdaMax, 
             writer.writerow(pars)
 
         f.close()
+
+        if np.max(valAcc) > bestAcc:
+            bestAcc = np.max(valAcc)
+            bestLambda = tmp_lamda
+
+        return bestLambda , bestAcc

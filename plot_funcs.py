@@ -17,12 +17,13 @@ def montage(W,savename,foldername):
     plt.savefig(foldername + savename)
     fig.clf()
 
-def plotCost(net,keys,savename,foldername,size=(10,5),showPlots=False,savePlots=True,title=None):
+def plotCost(net,keys,savename,foldername,size=(7,5),showPlots=False,savePlots=True,title=None):
     
     plt.figure(figsize=size)
-
+    
     if title is None:
-        title = "Cost for %d-layer network with hidden dimensions %s \n using BN" % (len(net.layer_dims) + 1 , net.layer_dims)
+        with_out = "with" if net.normalize else "without"
+        title = "Cost for %d-layer network with hidden dimensions \n %s %s BN" % (len(net.layer_dims) + 1 , net.layer_dims , with_out)
 
     for key in keys:
         steps = np.linspace(0,2*net.n_s*net.n_cycles,len(net.cost[key]))
@@ -40,13 +41,14 @@ def plotCost(net,keys,savename,foldername,size=(10,5),showPlots=False,savePlots=
     plt.clf()
 
 
-def plotAcc(net,keys,savename,foldername,size=(10,5),showPlots=False,savePlots=True,title=None):
+def plotAcc(net,keys,savename,foldername,size=(7,5),showPlots=False,savePlots=True,title=None):
 
     plt.figure(figsize=size)
 
     if title is None:
-        title = "Accuracy for %d-layer network with hidden dimensions %s \n using BN" % (len(net.layer_dims) + 1 , net.layer_dims)
-    
+        with_out = "with" if net.normalize else "without"
+        title = "Accuracy for %d-layer network with hidden dimensions \n %s %s BN" % (len(net.layer_dims) + 1 , net.layer_dims , with_out)
+
     for key in keys:
         steps = np.linspace(0,2*net.n_s*net.n_cycles,len(net.accuracy[key]))
         plt.plot(steps,net.accuracy[key],label=key)
@@ -62,6 +64,56 @@ def plotAcc(net,keys,savename,foldername,size=(10,5),showPlots=False,savePlots=T
         plt.show()
 
     plt.clf()
+
+
+def plotAcc2(net,keys,savename,foldername,size=(7,5),showPlots=False,savePlots=True,title=None,skipSteps=1):
+
+    plt.figure(figsize=size)
+
+    for key in keys:
+        N = len(net.accuracy[key])
+        rem = N % skipSteps
+        newN = int((N - rem)/skipSteps)
+        steps = np.linspace(0,2*net.n_s*net.n_cycles,newN)
+        newAcc = net.accuracy[key][0:N:skipSteps]
+        plt.plot(steps,newAcc,label=key)
+    
+    plt.xlabel("Steps")
+    plt.ylabel("Accuracy")
+    plt.title(title)
+    plt.legend()
+    
+    if savePlots:
+        plt.savefig(foldername + savename)
+    if showPlots:
+        plt.show()
+
+    plt.clf()
+
+def plotCost2(net,keys,savename,foldername,size=(7,5),showPlots=False,savePlots=True,title=None,skipSteps=1):
+
+    plt.figure(figsize=size)
+
+    for key in keys:
+        N = len(net.cost[key])
+        rem = N % skipSteps
+        newN = int((N - rem)/skipSteps)
+        steps = np.linspace(0,2*net.n_s*net.n_cycles,newN)
+        newAcc = net.cost[key][0:N:skipSteps]
+        plt.plot(steps,newAcc,label=key)
+    
+    plt.xlabel("Steps")
+    plt.ylabel("Cost")
+    plt.title(title)
+    plt.legend()
+    
+    if savePlots:
+        plt.savefig(foldername + savename)
+    if showPlots:
+        plt.show()
+
+    plt.clf()
+
 
 def custPlot(data1,data2,title,xlab,ylab,n_s,cycles):
 

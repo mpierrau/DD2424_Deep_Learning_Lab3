@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from scipy.linalg import fractional_matrix_power
+import csv
 
 def relu(input_data):
     # ReLu activation function
@@ -84,20 +85,23 @@ def setEta(epoch,n_s,etaMin, etaMax):
     return etat
 
 
-def he_init(in_dim,out_dim):
+def he_init(in_dim,out_dim,seed):
     """ He (Kaiming) initialization """
+    np.random.seed(seed)
     mat = np.random.normal(0,1,(out_dim,in_dim))*math.sqrt(2./in_dim)
     
     return mat
 
-def xavier_init(in_dim,out_dim):
+def xavier_init(in_dim,out_dim,seed):
     """ Xavier initalization """
+    np.random.seed(seed)
     mat = np.random.uniform(-1,1,(out_dim,in_dim))*math.sqrt(6./(in_dim + out_dim))
 
     return mat
 
-def regular_init(in_dim,out_dim):
+def regular_init(in_dim,out_dim,seed):
     """ Regular naive initialization """
+    np.random.seed(seed)
     mat = np.random.normal(0,1/np.sqrt(in_dim),(out_dim,in_dim))
 
     return mat
@@ -106,7 +110,8 @@ def normal_init(in_dim,out_dim, *args):
     """ Initialize vectors/matrices from normal dist with mu mean, sigma variance """
     mu = args[0]
     sig = args[1]
-
+    seed = args[2]
+    np.random.seed(seed)
     mat = np.random.normal(mu,sig,(out_dim,in_dim))
 
     return mat
@@ -114,3 +119,48 @@ def normal_init(in_dim,out_dim, *args):
 def identity(*args):
     # Specific identity function for returning first arg without change
     return args[0]
+
+
+def write_metrics(net,fileName):
+
+    header = ['Step','Loss','Cost','Accuracy']
+
+    totSteps = 2*net.n_s*net.n_cycles
+    
+    for key in ["Training","Validation","Test"]:
+        steps = range(0,totSteps,net.rec_every)
+        
+        if len(steps) == 0:
+            break
+
+        thisFile = "%s_%s.csv" % (fileName,key)
+        
+        f = open(thisFile ,"w")
+        
+        with f:
+            writer = csv.writer(f)
+            writer.writerow(header)
+
+        f.close()
+
+        f = open(thisFile,"a+")
+        
+        with f:
+            writer = csv.writer(f)
+            for i in range(len(net.loss[key])):
+                vals = [steps[i] , net.loss[key][i] , net.cost[key][i] , net.accuracy[key][i]]
+                writer.writerow(vals)
+
+        f.close()
+
+        print("%s results saved in %s" % (key,thisFile))
+
+""" # Finish if time
+def write_pars(net,savefile):
+    if net.normalize:
+        pars = ["W","b","gamma","beta"]
+    else:
+        pars = ["W","b"]
+    
+    for name in pars:
+        """

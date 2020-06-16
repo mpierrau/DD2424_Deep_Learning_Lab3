@@ -1,6 +1,6 @@
 # Base layer class
 import numpy as np 
-from numpy import random
+from random import Random
 import copy
 
 class Layer:
@@ -23,7 +23,7 @@ class FCLayer(Layer):
     # input_size:
     # output_size:
     
-    def __init__(self, input_size, output_size, init_func, lamda=0, W = None, b = None, name=None, normalize=True, alpha=0.9):
+    def __init__(self, input_size, output_size, init_func, lamda, W = None, b = None, seed=None, name=None, normalize=True, alpha=0.9):
         self.batchSize = None
         self.nCols = input_size
         self.nRows = output_size
@@ -55,8 +55,10 @@ class FCLayer(Layer):
         self.unnorm_score = None
         
         self.name = "Fully Connected Layer (%d,%d)" % (self.nRows,self.nCols) if name is None else name
-                    
-        self.W = self.init_func(in_dim=self.nCols,out_dim=self.nRows) if W is None else W
+        
+        self.seed = seed
+
+        self.W = self.init_func(in_dim=self.nCols,out_dim=self.nRows,seed=self.seed) if W is None else W
         self.b = np.zeros((self.nRows,1)) if b is None else b
 
         self.normalize_fw_func = None

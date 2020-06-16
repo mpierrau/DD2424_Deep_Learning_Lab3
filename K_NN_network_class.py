@@ -1,20 +1,19 @@
 import numpy as np
-from numpy import random
-from K_NN_funcs import setEta , softMax , he_init , relu , cross_entropy , cross_entropy_prime , L2_cost
+from random import Random
+from K_NN_funcs import setEta , softMax , he_init , relu , cross_entropy , cross_entropy_prime , L2_cost , write_metrics
 import copy
 from K_NN_layer_class import FCLayer , ActLayer
 from tqdm import trange 
+import winsound
 
 class Network:
-    def __init__(self,act_func=relu,loss_func=cross_entropy,loss_prime_func=cross_entropy_prime,cost_func=L2_cost,init_func=he_init,normalize=True,alpha=0.9):
+    def __init__(self,act_func=relu,loss_func=cross_entropy,loss_prime_func=cross_entropy_prime,cost_func=L2_cost,init_func=he_init,normalize=True):
         
         self.lamda = None
         self.eta = None
         self.n_cycles = None
         self.n_s = None
         self.nBatch = None
-
-        self.alpha = alpha
 
         self.weights = []
         self.biases = []
@@ -36,11 +35,13 @@ class Network:
         self.P = {"Training":None,"Validation":None}
 
 
-    def build_layers(self, data_dim, nClasses, hidden_dim,W=None, b=None,verbose=True):
+    def build_layers(self, data_dim, nClasses, hidden_dim,lamda,W=None, b=None,verbose=True, par_seed=None, alpha=0.9):
 
         n_layers = len(hidden_dim)
-        
+
+        self.alpha = alpha
         self.layer_dims = hidden_dim
+        self.lamda = lamda
 
         if W == None:
             W = []
@@ -64,20 +65,21 @@ class Network:
 
 
         self.add_layer(FCLayer( input_size=data_dim,output_size=hidden_dim[0],
-                                init_func=self.init_func,W=W[0],b=b[0],normalize=self.normalize,alpha=self.alpha),verbose=verbose)
+                                init_func=self.init_func,lamda=self.lamda,W=W[0],b=b[0],seed=par_seed,normalize=self.normalize,alpha=self.alpha),verbose=verbose)
         self.add_layer(ActLayer(self.act_func),verbose=verbose)
 
         for i in range(1,n_layers):
             self.add_layer(FCLayer( input_size=hidden_dim[i-1],output_size=hidden_dim[i],
-                                    init_func=self.init_func,W=W[i],b=b[i],normalize=self.normalize,alpha=self.alpha),verbose=verbose)
+                                    init_func=self.init_func,lamda=self.lamda,W=W[i],b=b[i],seed=par_seed,normalize=self.normalize,alpha=self.alpha),verbose=verbose)
             self.add_layer(ActLayer(self.act_func),verbose=verbose)
 
         self.add_layer(FCLayer( input_size=hidden_dim[-1],output_size=nClasses,
-                                init_func=self.init_func,W=W[-1],b=b[-1],normalize=False,alpha=self.alpha),verbose=verbose)
+                                init_func=self.init_func,lamda=self.lamda,W=W[-1],b=b[-1],seed=par_seed,normalize=False,alpha=self.alpha),verbose=verbose)
     
         if verbose:
             print("\n---------------DONE---------------\n")
 
+    
     def add_layer(self, layer, verbose=True):
         layerIdx = len(self.layers)
         layer.layerIdx = layerIdx
@@ -85,6 +87,7 @@ class Network:
             print("Added layer %d : %s" % (layerIdx,layer.name))
         self.layers.append(layer)
     
+
     def forward_prop(self, input_data,key="Training",prediction=False,debug=False):
         """ Runs data through network and softmax 
             Returns matrix P of dimension k x N """
@@ -99,7 +102,6 @@ class Network:
 
         self.P[key] = output
 
-       
 
     def backward_prop(self, input_labels, eta):
 
@@ -107,16 +109,20 @@ class Network:
         for layer in reversed(self.layers):
             input_error = layer.backward_pass(input_error,eta)
             
-    def fit(self, X, Y, y,n_cycles,n_s,nBatch,eta,lamda,recPerEp,seed=None):
+
+
+    def fit(self, X, Y, y,n_cycles,n_s,nBatch,eta,rec_every,shuffle_seed=None,write_to_file=True,fileName="tmp_vals",sound_on_finish=False):
         """ X = [Xtrain, Xval] 
             Y = [Ytrain, Yval]"""
+        
+        shuffleRand = Random(shuffle_seed)
 
-        self.n_cycles = n_cycles
-        self.n_s = n_s
-        self.nBatch = nBatch
+        self.n_cycles = int(n_cycles)
+        self.n_s = int(n_s)
+        self.nBatch = int(nBatch)
         self.eta = eta
-        self.lamda = lamda
-
+        self.rec_every = int(rec_every)
+        
         Xtrain , Xval = X
         Ytrain , Yval = Y
         ytrain , yval = y
@@ -130,21 +136,16 @@ class Network:
         steps_per_ep = int(N/self.nBatch)
         n_epochs = int(np.ceil(tot_steps/steps_per_ep))
 
-        rec_every = int(steps_per_ep/recPerEp)
-
         index = np.arange(N)
+
         t = 0
+        for _ in trange(n_epochs,leave=False):
+            shuffleRand.shuffle(index)                  # Shuffle batches in each epoch
 
-        for epoch in trange(n_epochs):
-            # Shuffle batches in each epoch
-            random.shuffle(index)
+            #epoch_steps = steps_per_ep if (((tot_steps - t) // steps_per_ep) > 0 ) else (tot_steps % steps_per_ep) 
 
-            epoch_steps = steps_per_ep if (((tot_steps - t) // steps_per_ep) > 0 ) else (tot_steps % steps_per_ep) 
-            
-            bar_range = trange(epoch_steps,leave=False) # Gives nice progress bar
-
-            for step in bar_range:
-                t = epoch*epoch_steps + step
+            for step in trange(steps_per_ep,leave=False):
+                #t = epoch*epoch_steps + step
                 step_eta = setEta(t,self.n_s,eta_min,eta_max)
                 batchIdxStart = step*self.nBatch
                 batchIdxEnd = batchIdxStart + self.nBatch
@@ -157,19 +158,19 @@ class Network:
                 self.forward_prop(Xbatch)
                 self.backward_prop(Ybatch,step_eta)
                 
-                if (step % rec_every) == 0:
+                if (t % self.rec_every) == 0:
                     self.checkpoint(Xval,Yval,yval,"Validation")
                     self.checkpoint(Xbatch,Ybatch,ybatch,"Training")
                     self.save_pars()
 
-            bar_range.close()
+                t += 1
+                
+        if write_to_file:
+            write_metrics(self,fileName)
+            #write_pars(self) # TODO
 
-    def set_loss(self, loss_func, loss_prime_func):
-        self.loss_func = loss_func
-        self.loss_prime_func = loss_prime_func
-
-    def set_cost(self, cost_func):
-        self.cost_func = cost_func
+        if sound_on_finish:
+            winsound.MessageBeep()
 
     def compute_loss(self, Y, key="Training"):
         
@@ -177,12 +178,14 @@ class Network:
 
         self.loss[key].append(l)
     
+    
     def compute_cost(self, key="Training"):
         
         J = self.cost_func(self,self.loss[key][-1],self.lamda)
         
         self.cost[key].append(J)
     
+
     def compute_accuracy(self, X, y, key="Training"):
         N = len(y)
 
@@ -192,13 +195,18 @@ class Network:
         
         self.accuracy[key].append(n_correct/N)
                 
+
+    def checkpoint(self,X,Y,y,key):
+        self.forward_prop(X,key,prediction=True)
+        self.compute_loss(Y,key)
+        self.compute_cost(key)
+        self.compute_accuracy(X,y,key)
+
+
     def save_pars(self):
         self.weights.append(self.get_weights())
         self.biases.append(self.get_biases())
 
-    def get_pars(self):
-        return self.weights , self.biases
-    
     def get_weights(self):
         weights = {}
 
@@ -235,12 +243,6 @@ class Network:
 
         return betas
    
-    def checkpoint(self,X,Y,y,key):
-        self.forward_prop(X,key,prediction=True)
-        self.compute_loss(Y,key)
-        self.compute_cost(key)
-        self.compute_accuracy(X,y,key)
-
     def predict(self,X,y,key):
         self.forward_prop(X,key,prediction=True)
         prediction = np.argmax(self.P[key],axis=0)

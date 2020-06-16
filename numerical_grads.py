@@ -32,7 +32,7 @@ def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.
         anNet.nBatch = nBatch
         anNet.eta = [eta,eta]
         anNet.lamda = lamda
-        for i in range(burnIn-1):
+        for i in trange(burnIn-1):
             print("Burn in step ", (i+1))
             anNet.forward_prop(X,debug=False)
             anNet.backward_prop(Y, anNet.eta[0])
@@ -40,8 +40,6 @@ def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.
         
         anNet.compute_loss(Y)
         anNet.compute_cost()
-        
-        print("Burn in done")
     else:
         print("Net provided, copying net...")
         anNet = copy.deepcopy(net)
@@ -250,7 +248,7 @@ def relErr(Wan,Wnum,eps=1e-7):
         print("Wan and Wnum have different dimensions!")
         print("Wan: %s != Wnum: %s" % (np.shape(Wan),np.shape(Wnum)))
     
-    relErr = np.mean(np.abs(Wan - Wnum)/np.maximum(np.abs(Wan),np.abs(Wnum)))
-    #relErr = np.mean(np.abs(Wan - Wnum)/np.maximum(eps,(np.abs(Wan) + np.abs(Wnum))))
+    #relErr = np.mean(np.abs(Wan - Wnum)/np.maximum(np.abs(Wan),np.abs(Wnum)))
+    relErr = np.mean(np.abs(Wan - Wnum)/np.maximum(eps,(np.abs(Wan) + np.abs(Wnum))))
     return relErr
 

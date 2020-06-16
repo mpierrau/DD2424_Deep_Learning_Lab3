@@ -23,14 +23,42 @@ eta_max = 1e-1
 lamda = .005
 rec = 5
 
-net = Network(normalize=True)
-net.build_layers(d,k,dims)
+net1 = Network(normalize=True)
+net1.build_layers(d,k,dims,lamda,par_seed=1337)
 
-net.fit(Xin,Yin,yin,n_cycles=cycles,n_s=n_s,nBatch=nBatch,eta=[eta_min,eta_max],lamda=lamda,recPerEp=rec)
+net1.fit(Xin,Yin,yin,n_cycles=cycles,n_s=n_s,nBatch=nBatch,eta=[eta_min,eta_max],recPerEp=rec,shuffle_seed=1337)
 
-net.compute_accuracy(test_data[0],test_data[2],key="Test")
-net.accuracy["Test"]
-# 51.7 % accuracy
+net1.compute_accuracy(test_data[0],test_data[2],key="Test")
+net1.accuracy["Test"]
+# 53.4 % accuracy
+np.max(net1.accuracy["Training"])
+# 73 % accuracy
+np.min(net1.cost["Validation"])
 
-plotAcc(net,["Training","Validation"])
-plotCost(net,["Training","Validation"])
+plotAcc(net1,["Training","Validation"],savename="3_layers_acc_new_BN.png",foldername="Imgs/3_Layers/New_run/",
+        title = "Accuracy for %d-layer network with hidden dimensions %s \n with BN" % (len(net1.layer_dims) + 1 , net1.layer_dims),
+        size=(7,5))
+plotCost(net1,["Training","Validation"],savename="3_layers_cost_new_BN.png",foldername="Imgs/3_Layers/New_run/",
+        title = "Cost for %d-layer network with hidden dimensions %s \n with BN" % (len(net1.layer_dims) + 1 , net1.layer_dims),
+        size=(7,5))
+
+
+net2 = Network(normalize=False)
+net2.build_layers(d,k,dims,lamda,par_seed=1337)
+
+net2.fit(Xin,Yin,yin,n_cycles=cycles,n_s=n_s,nBatch=nBatch,eta=[eta_min,eta_max],recPerEp=rec,shuffle_seed=1337)
+
+net2.compute_accuracy(test_data[0],test_data[2],key="Test")
+net2.accuracy["Test"]
+# 46.7 % accuracy
+np.max(net2.accuracy["Training"])
+# 58 % accuracy
+
+np.min(net2.cost["Training"])
+
+plotAcc(net2,["Training","Validation"],savename="3_layers_acc_new_Non_BN.png",foldername="Imgs/3_Layers/New_run/",
+        title = "Accuracy for %d-layer network with hidden dimensions %s \n without BN" % (len(net2.layer_dims) + 1 , net2.layer_dims),
+        size=(7,5))
+plotCost(net2,["Training","Validation"],savename="3_layers_cost_new_Non_BN.png",foldername="Imgs/3_Layers/New_run/",
+        title = "Cost for %d-layer network with hidden dimensions %s \n without BN" % (len(net2.layer_dims) + 1 , net2.layer_dims),
+        size=(7,5))

@@ -12,10 +12,13 @@ dims = [50,50]
 cycles = 2
 n_s = 2*np.floor(N/nBatch)
 eta = [1e-5,1e-1]
-nLambda = 5
+nLambda = 10
 
-lambdaMinFine = 2e-3
-lambdaMaxFine = 3e-3
+lambdaMinFine = 1e-4
+lambdaMaxFine = 2e-2
 
 lambdaSearch(   Xin, Yin, yin, dims, cycles, n_s, nBatch, eta, lambdaMinFine, lambdaMaxFine, nLambda, 
-                randomLambda=False, logScale=False, recPerEp = 50, fileName = "lab3_fine_lambda_search_nonrandom")
+                randomLambda=False, logScale=False, recPerEp = 50, fileName = "lab3_fine_lambda_search_nonrandom_1337", seed=1337)
+
+import winsound
+winsound.MessageBeep()
