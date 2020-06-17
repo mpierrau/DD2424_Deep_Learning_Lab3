@@ -37,12 +37,12 @@ def lambdaSearch(X, Y, y, dims, cycles, n_s, nBatch, eta, lambdaMin, lambdaMax, 
     k = Y[0].shape[0]
     
     bestAcc = 0
-
+    bestLambda = .006733
     for tmp_lamda in tqdm.tqdm(lamda):
 
         net = Network()
         net.build_layers(d,k,dims,lamda=tmp_lamda,verbose=False,par_seed=seed)
-        net.fit(X,Y,y,cycles,n_s,nBatch,eta,recPerEp,shuffle_seed=seed)
+        net.fit(X,Y,y,cycles,n_s,nBatch,eta,recPerEp,shuffle_seed=seed,write_to_file=False)
 
         valAcc = net.accuracy["Validation"]
         valCost = net.cost["Validation"]
@@ -66,4 +66,4 @@ def lambdaSearch(X, Y, y, dims, cycles, n_s, nBatch, eta, lambdaMin, lambdaMax, 
             bestAcc = np.max(valAcc)
             bestLambda = tmp_lamda
 
-        return bestLambda , bestAcc
+    return bestLambda , bestAcc
