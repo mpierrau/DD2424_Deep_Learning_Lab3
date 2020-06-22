@@ -7,7 +7,7 @@ import sys
 from tqdm import tqdm , trange
 """ Test function for numerical gradient computation """
 
-def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.01, fast=True, debug=False, eta=1e-5, burnIn=10,normalize=False,alpha=0.9,net=None):
+def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.01, fast=True, debug=False, eta=1e-5, burnIn=10,normalize=False,alpha=0.9,net=None,seed=None):
     # Compares results of analytically computed
     # gradients to numerical approximations to
     # ensure correctness.
@@ -24,8 +24,8 @@ def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.
     if net is None:
         print("Building anNet : \n")
 
-        anNet = Network(normalize=normalize,alpha=alpha)
-        anNet.build_layers(d,k,layerDims)
+        anNet = Network(normalize=normalize)
+        anNet.build_layers(d,k,layerDims,lamda=lamda,par_seed=seed,alpha=alpha)
         
         print("\nBurning in %d steps...\n" % burnIn)
         
@@ -33,8 +33,7 @@ def testGrads(X, Y, y, layerDims, lamda, h, init_func, nBatch=None, mu=0, sig=0.
         anNet.eta = [eta,eta]
         anNet.lamda = lamda
         for i in trange(burnIn-1):
-            print("Burn in step ", (i+1))
-            anNet.forward_prop(X,debug=False)
+            anNet.forward_prop(X)
             anNet.backward_prop(Y, anNet.eta[0])
 
         

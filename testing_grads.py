@@ -22,12 +22,12 @@ yin = [ytrain , yval]
 dims = [50,30,20,20,10,10,10,10]
 
 net = Network(normalize=True)
-net.build_layers(redDim, 10, dims,par_seed=1337)
-net.fit(Xin,Yin,yin,n_cycles=2,n_s=100,nBatch=5,eta=[1e-1,1e-5],lamda=.005,recPerEp=1)
+net.build_layers(redDim, 10, dims,par_seed=1337,lamda=0.005)
+net.fit(Xin,Yin,yin,n_cycles=2,n_s=100,nBatch=5,eta=[1e-1,1e-5],rec_every=50,shuffle_seed=1337,write_to_file=False)
 
 errs, anGrads, numGrads, anNet, numNet = numerical_grads.testGrads(Xtrain,Ytrain,ytrain,layerDims=dims,
                                                 lamda=.005,h=1e-6,init_func = he_init,
-                                                fast=False,burnIn=100,normalize=True,net=None)
+                                                fast=False,burnIn=100,normalize=True,net=net,seed=1337)
 
 errs
 

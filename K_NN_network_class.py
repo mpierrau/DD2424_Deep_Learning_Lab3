@@ -1,3 +1,20 @@
+""" Network Class for a neural network.
+    
+    Contents:
+    
+    build_layers = method to build network given parameters
+    
+    add_layers = helper function for build_layers. Can be used to manually build layer.
+    
+    forward_prop = method to propagate data forward through all layers and produces a final P matrix used for prediction.
+    
+    backward_prop = method to propagate gradient w.r.t. cost backwards through all layers to update parameters. 
+    
+    fit = method to train the network on some data given specific parameters. 
+    
+    
+    Plus some surplus methods to compute, save or extract various metrics and parameters. """
+
 import numpy as np
 from random import Random
 from K_NN_funcs import setEta , softMax , he_init , relu , cross_entropy , cross_entropy_prime , L2_cost , write_metrics
@@ -7,6 +24,27 @@ from tqdm import trange
 import winsound
 
 class Network:
+    """ Network Class:
+    
+        act_func    = activation function. default : ReLu
+                    - type : function
+                    
+        loss_func   = loss function. default : Cross Entropy 
+                    - type : function
+        
+        loss_prime_func = derivative of act_func. default : Cross Entropy derivative
+                        - type : function
+                            
+        cost_func   = cost function. default : L2 regularization cost using self.lamda.
+                    - type : function
+                    
+        init_func   = function for parameter initialization. default : He Initialization.
+                    - type : function
+                    
+        normalize   = option to use batch normalization or not. Once initialized cannot be changed easily.
+                    - type : boolean """
+                
+
     def __init__(self,act_func=relu,loss_func=cross_entropy,loss_prime_func=cross_entropy_prime,cost_func=L2_cost,init_func=he_init,normalize=True):
         
         self.lamda = None
@@ -29,13 +67,45 @@ class Network:
         self.init_func = init_func
         self.normalize = normalize
 
+        # Saving results for different datasets in dictionaries for easy access
         self.cost = {"Training":[],"Validation":[],"Test":[]}
         self.loss = {"Training":[],"Validation":[],"Test":[]}
         self.accuracy = {"Training":[],"Validation":[],"Test":[]}
+
+        # Since P is a large matrix we only save one value at a time.
         self.P = {"Training":None,"Validation":None}
 
 
     def build_layers(self, data_dim, nClasses, hidden_dim,lamda,W=None, b=None,verbose=True, par_seed=None, alpha=0.9):
+        """ Builds a network with layers of dims [(hidden_dim[0], data_dim), (hidden_dim[1], hidden_dim[0]), ... , (hidden_dim[k-1], hidden_dim[k])].
+            Each FCLayer is followed by an ActLayer, except the last layer. 
+            
+            data_dim    = dimensionality of data (rows in X) 
+                        - type : int > 0
+                        
+            nClasses    = number of classes in dataset (for CIFAR-10 nClasses=10)
+                        - type : int > 0
+                        
+            hidden_dim  = dimensionality of hidden layers
+                        - type : list or array of ints > 0
+                        
+            lamda   = regularization term for cost function
+                    - type : float > 0
+                    
+            W   = option to manually set W parameter for each layer
+                - type : list of matrices with appropriate dimensions
+                
+            b   = option to manually set b parameters for each layer
+                - type : list of column vectors with appropriate dimensions
+                
+            verbose = print stuff along the way or not
+                    - type : boolean
+                    
+            par_seed    = random seed for parameter initialization for replicability
+                        - type : float
+                        
+            alpha   = value for weighted averages in batch normalization
+                    - type : float 0 < alpha < 1"""
 
         n_layers = len(hidden_dim)
 
@@ -88,7 +158,7 @@ class Network:
         self.layers.append(layer)
     
 
-    def forward_prop(self, input_data,key="Training",prediction=False,debug=False):
+    def forward_prop(self, input_data,key="Training",prediction=False):
         """ Runs data through network and softmax 
             Returns matrix P of dimension k x N """
         
@@ -96,7 +166,7 @@ class Network:
         output = input_data
         
         for layer in self.layers:
-            output = layer.forward_pass(output,prediction,debug=debug)
+            output = layer.forward_pass(output,prediction)
             
         output = softMax(output)
 
@@ -104,7 +174,7 @@ class Network:
 
 
     def backward_prop(self, input_labels, eta):
-
+        """ Backpropagates gradient through network """
         input_error = self.loss_prime_func(input_labels, self.P["Training"])
         for layer in reversed(self.layers):
             input_error = layer.backward_pass(input_error,eta)
@@ -112,8 +182,43 @@ class Network:
 
 
     def fit(self, X, Y, y,n_cycles,n_s,nBatch,eta,rec_every,shuffle_seed=None,write_to_file=True,fileName="tmp_vals",sound_on_finish=False):
-        """ X = [Xtrain, Xval] 
-            Y = [Ytrain, Yval]"""
+        """ X   = input data 
+                - type : list of [training data X, validation data X]
+
+            Y   = input data labels as one hot encoding matrix
+                - type : list of [training data Y, validation data Y]
+
+            y   = input data labels as vector of labels
+                - type : list of [training data y, validation data y] 
+                
+            n_cycles    = number of cycles to train for
+                        - type : int > 0
+                        
+            n_s = length of one half cycle (one cycle = 2*n_s)
+                - type : int > 0
+
+            nBatch  = size of one batch
+                    - type : int > 0 > N
+
+            eta = learning rate. Must be list of [eta_min , eta_max] which eta will vary linearly between. If eta_min = eta_max , eta will be same throughout training. 
+                - type : list[float,float]
+
+            rec_every   = record loss, cost and accuracy for training and validation set every rec_every step. The lower this number, the longer training will take.
+                        - type : int >= 0
+
+            shuffle_seed    = random seed for shuffling order of batches, for replicability
+                            - type : float
+
+            write_to_file   = option to save loss, accuracy and cost to a csv file at end of training.
+                            - type : boolean
+
+            fileName    = name of savefile to be used if write_to_file == True
+                        - type : string
+
+            sound_on_finish = plays sound when training is complete (only works on Windows OS).
+                            - type : boolean
+            
+            """
         
         shuffleRand = Random(shuffle_seed)
 
@@ -138,19 +243,19 @@ class Network:
 
         index = np.arange(N)
 
+
+        # Begin training
         t = 0
         for _ in trange(n_epochs,leave=False):
             shuffleRand.shuffle(index)                  # Shuffle batches in each epoch
 
-            #epoch_steps = steps_per_ep if (((tot_steps - t) // steps_per_ep) > 0 ) else (tot_steps % steps_per_ep) 
-
             for step in trange(steps_per_ep,leave=False):
-                #t = epoch*epoch_steps + step
                 step_eta = setEta(t,self.n_s,eta_min,eta_max)
+
                 batchIdxStart = step*self.nBatch
                 batchIdxEnd = batchIdxStart + self.nBatch
-
                 tmpIdx = index[np.arange(batchIdxStart,batchIdxEnd)]
+
                 Xbatch = Xtrain[:,tmpIdx]
                 Ybatch = Ytrain[:,tmpIdx]
                 ybatch = ytrain[tmpIdx]
@@ -161,16 +266,16 @@ class Network:
                 if (t % self.rec_every) == 0:
                     self.checkpoint(Xval,Yval,yval,"Validation")
                     self.checkpoint(Xbatch,Ybatch,ybatch,"Training")
-                    self.save_pars()
 
                 t += 1
                 
         if write_to_file:
             write_metrics(self,fileName)
-            #write_pars(self) # TODO
 
         if sound_on_finish:
             winsound.MessageBeep()
+
+
 
     def compute_loss(self, Y, key="Training"):
         
@@ -195,6 +300,13 @@ class Network:
         
         self.accuracy[key].append(n_correct/N)
                 
+    
+    def predict(self,X,y,key):
+        self.forward_prop(X,key,prediction=True)
+        prediction = np.argmax(self.P[key],axis=0)
+
+        return prediction
+    
 
     def checkpoint(self,X,Y,y,key):
         self.forward_prop(X,key,prediction=True)
@@ -202,10 +314,6 @@ class Network:
         self.compute_cost(key)
         self.compute_accuracy(X,y,key)
 
-
-    def save_pars(self):
-        self.weights.append(self.get_weights())
-        self.biases.append(self.get_biases())
 
     def get_weights(self):
         weights = {}
@@ -216,6 +324,7 @@ class Network:
         
         return weights
     
+
     def get_biases(self):
         biases = {}
 
@@ -224,6 +333,7 @@ class Network:
                 biases[layer.layerIdx] = layer.b
 
         return biases
+
 
     def get_gammas(self):
         gammas = {}
@@ -234,6 +344,7 @@ class Network:
 
         return gammas
 
+
     def get_betas(self):
         betas = {}
 
@@ -243,8 +354,5 @@ class Network:
 
         return betas
    
-    def predict(self,X,y,key):
-        self.forward_prop(X,key,prediction=True)
-        prediction = np.argmax(self.P[key],axis=0)
-
-        return prediction
+ 
+ 

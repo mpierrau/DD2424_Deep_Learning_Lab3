@@ -1,11 +1,12 @@
-# Base layer class
+""" Layer Class for a Neural Network. Contains fully connected layer (FCLayer) and activation layer (ActLayer) objects. """
+
 import numpy as np 
 from random import Random
 import copy
 
 class Layer:
 
-    # Constructor
+    """ Constructor """
     def __init__(self):
         
         self.input = None
@@ -20,8 +21,34 @@ class Layer:
         raise NotImplementedError
 
 class FCLayer(Layer):
-    # input_size:
-    # output_size:
+    """ Fully connected layer 
+        
+        input_size , output_size    = dimensions of this layers parameters. (dim(W) = [output_size , input_size]) 
+                                    - types:    input_size : int
+                                                output_size : int
+
+        init_func   = choose function to initialize parameters. Function takes input_size, output_size as input, and an alternative seed argument for replicability. 
+                    - type (function((int),(int),(double)))
+        
+        lamda   = regularization term parameter. 
+                - type: float > 0
+        
+        W , b   = parameters which can be specified manually. Overrides init_func 
+                - types:    W : [output_sizee , input_size] array of floats 
+                            b : [output_size , 1] array of floats
+        
+        seed    = a random seed determining parameter initializations 
+                - type: float
+        
+        name    = optional name for layer. If none will be initialized automatically. 
+                - type: string
+        
+        normalize   = boolean for whether to use batch normalization or not. if false then identity type functions will be used in forward and backward prop in normalization steps. 
+                    - type: boolean
+        
+        alpha   = weights for weighted average of mu and v estimates in batch normalization step. 
+                - type: float (0 < alpha < 1)
+        """
     
     def __init__(self, input_size, output_size, init_func, lamda, W = None, b = None, seed=None, name=None, normalize=True, alpha=0.9):
         self.batchSize = None
@@ -72,16 +99,24 @@ class FCLayer(Layer):
             self.normalize_grad_func = self.compute_norm_grads
             self.normalize_update_pars_func = self.updateParsNorm
         else:
+            # If not BN then updating functions are set to identity type functions
             self.normalize_fw_func = self.batch_Non_NormFProp
             self.normalize_bw_func = self.batch_Non_NormBProp
             self.normalize_grad_func = lambda *args : None
-            self.normalize_update_pars_func = lambda eta : [self.gamma,self.beta]
+            self.normalize_update_pars_func = lambda eta : [self.gamma,self.beta] 
 
-    def forward_pass(self, input_data,prediction=False,debug=False):
+
+    def forward_pass(self, input_data,prediction=False):
+        """ Forward pass function used in forward propagation. 
+            Takes previous layers output as input_data. 
+            If prediction = True then normalizing parameters are not updated. """
+
         self.input = input_data
         self.batchSize = input_data.shape[1]
+        
         self.unnorm_score = np.dot(self.W,self.input) + self.b
         
+        # In first pass set avg_mu to current batch mean and avg_v to current batch variance
         if self.avg_mu is None:
             avg_mu = self.unnorm_score.mean(axis=1)
             self.avg_mu = avg_mu
@@ -89,6 +124,7 @@ class FCLayer(Layer):
             avg_v = self.unnorm_score.var(axis=1,ddof=0)
             self.avg_v = avg_v
 
+        # If prediction then we use batch_mu and batch_v as our parameter for normalization and don't update these values.
         if prediction==True:
             mu = self.avg_mu
             v = self.avg_v
@@ -96,7 +132,6 @@ class FCLayer(Layer):
             self.batch_mu = self.unnorm_score.mean(axis=1)
             self.batch_v = self.unnorm_score.var(axis=1,ddof=0) # Biased estimator
             
-            # For very first batch we initialize avg_mu as mu and avg_v as v, else weighted average.
             avg_mu = np.average([self.avg_mu,self.batch_mu],axis=0,weights=(self.alpha,1-self.alpha))
             avg_v = np.average([self.avg_v,self.batch_v],axis=0,weights=(self.alpha,1-self.alpha))
             
@@ -106,6 +141,7 @@ class FCLayer(Layer):
             mu = self.batch_mu
             v = self.batch_v
         
+        # Forward pass normalization step
         self.normalize_fw_func(mu,v)
 
         s_tilde = self.gamma*self.norm_score + self.beta
@@ -115,16 +151,13 @@ class FCLayer(Layer):
         return self.output
     
     def backward_pass(self, G, eta):
-
-        """ This here pass has a packpropagated gradient for dJdW which originates both from the hidden layer
-        and from the regularization term. 
-        We also compute and update the W and b parameter here """
-
-
+        """ G is the gradient propagated from previous layer. """
+        
         self.compute_norm_grads(G)
 
         G *= self.gamma
 
+        # Backward pass normalization step
         G = self.normalize_bw_func(G)
         
         newG = np.dot(self.W.T,G)
@@ -136,8 +169,9 @@ class FCLayer(Layer):
         return newG
     
     def compute_grads(self, G):
-        """ These gradients are under the assumption of mini batch gradient descent being used
-            and cross entropy. Not sure that these are strict necessities """
+        """ Compute and update gradients of W and b for current layer.
+            These gradients are under the assumption of mini batch gradient descent being used
+            and cross entropy. Not sure that these assumptions are strict necessities """
 
         dldW = np.dot(G, self.input.T)
         dldb = np.sum(G, axis=1).reshape((len(G),1))
@@ -150,6 +184,8 @@ class FCLayer(Layer):
 
 
     def compute_norm_grads(self,G):
+        """ Compute and update gradients of gamma and beta for current layer. """
+
         dJdgamma = np.sum((G * self.norm_score),axis=1) / self.batchSize
         dJdbeta = np.sum(G, axis=1) / self.batchSize
 
@@ -171,6 +207,7 @@ class FCLayer(Layer):
 
 
     def updateParsNorm(self,eta):
+        """ Function for updating gamma and beta if normalization is used """
         newGamma = self.gamma - eta * self.gradGamma
         newBeta = self.beta - eta * self.gradBeta
         
@@ -178,6 +215,8 @@ class FCLayer(Layer):
 
     
     def batchNormFProp(self,mu,v):
+        """ Batch normalization for forward prop """
+
         eps = np.finfo(float).eps
 
         sigma = v**(-.5)
@@ -186,14 +225,18 @@ class FCLayer(Layer):
         
         self.norm_score = norm_score
     
+
     def batch_Non_NormFProp(self,*argv):
+        """ If normalization=False then set normalized score to unnormalized score (identity) """
         self.norm_score = self.unnorm_score
 
+
     def batchNormBProp(self,G):
-        """ The columns in newG represent dJ/ds_i ,
+        """ Backward prop for batch normalization.
+            The columns in returned G represent dJ/ds_i ,
             where s_i is the unnormalized score.
             The columns in input G represent dJ/d(s^)_i ,
-            where (s^)_i is the normalized score"""
+            where (s^)_i is the normalized score """
 
         N = np.shape(G)[1]
 
@@ -212,30 +255,36 @@ class FCLayer(Layer):
 
         return G
     
+
     def batch_Non_NormBProp(self,G):
+        """ Backward prop normalization step if normalization=False. Simply return G (identity) """
         return G
 
 
-    def get_batch_v(self):
-        return self.batch_v
-
-    def get_avg_v(self):
-        return self.avg_v
 
 class ActLayer(Layer):
+    """ Activation layer class. 
+        
+        act_func    = Activation function, which takes data as input and returns matrix of same dimensions with some entries 0 depending on activation function used. (Throughout this assignment we use ReLu.) 
+                    - type: function
+        
+        name    = optional name for layer. If none will be initialized automatically. 
+                - type: string """
 
     def __init__(self, act_func,name=None):
         self.act_func = act_func
         self.name = "Activation Layer" if name is None else name
 
-    def forward_pass(self, input_data,prediction=False,debug=False):
+    def forward_pass(self, input_data,prediction=False):
         self.input = input_data
         self.output = self.act_func(self.input)
-        # Apply batch normalization here
+
         return self.output
 
     def backward_pass(self, G, eta):
         
         tmpG = G
+        
+        # Entry i,j in tmpG is set to 0 if entry i,j if input from previous node is <= 0.
         tmpG[self.input <= 0] = 0   
         return tmpG
