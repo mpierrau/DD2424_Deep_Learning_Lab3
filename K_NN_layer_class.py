@@ -1,7 +1,6 @@
 """ Layer Class for a Neural Network. Contains fully connected layer (FCLayer) and activation layer (ActLayer) objects. """
 
 import numpy as np 
-from random import Random
 import copy
 
 class Layer:
