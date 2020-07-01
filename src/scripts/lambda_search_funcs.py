@@ -42,7 +42,7 @@ def lambdaSearch(X, Y, y, dims, cycles, n_s, nBatch, eta, lambdaMin, lambdaMax, 
 
         net = Network()
         net.build_layers(d,k,dims,lamda=tmp_lamda,verbose=False,par_seed=seed)
-        net.fit(X,Y,y,cycles,n_s,nBatch,eta,recPerEp,shuffle_seed=seed,write_to_file=False)
+        net.fit(X,Y,y,cycles,n_s,nBatch,eta,recPerEp,shuffleSeed=seed,doWriteToFile=False)
 
         valAcc = net.accuracy["Validation"]
         valCost = net.cost["Validation"]

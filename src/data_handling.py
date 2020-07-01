@@ -5,16 +5,17 @@ import pickle
 """ Data processing / helpers """
 
 def loadBatch(filename):
-    with open('Datasets/'+filename, 'rb') as fo:
+    with open(filename, 'rb') as fo:
         dict = pickle.load(fo, encoding='latin1')
     X = np.array(dict['data'].reshape((len(dict['data']),32*32*3)),dtype=int).T
     y = np.array(dict['labels'])
+    n = X.shape[1]
     K = 10
-    n = len(y)
     Y = np.zeros((K,n))
     for i in range(n):
             Y[y[i],i] = 1 
     return X, Y, y
+
 
 def loadFiles(fileNameTraining,fileNameValidation,fileNameTest):
     X1,Y1,y1 = loadBatch(fileNameTraining)
@@ -27,6 +28,7 @@ def loadFiles(fileNameTraining,fileNameValidation,fileNameTest):
     test_data = list([X3, Y3, y3])
     
     return training_data, validation_data, test_data
+
 
 def loadPreProcData(fileNameTraining,fileNameValidation,fileNameTest):
     training_data , validation_data , test_data = loadFiles(fileNameTraining,fileNameValidation,fileNameTest)
@@ -47,19 +49,19 @@ def loadPreProcData(fileNameTraining,fileNameValidation,fileNameTest):
     return X , Y , y
 
 def loadAllFiles(valSize):
-    X1,Y1,y1 = loadBatch('data_batch_1')
+    X1,Y1,y1 = loadBatch('data/data_batch_1')
 
-    X2,Y2,y2 = loadBatch('data_batch_2')
+    X2,Y2,y2 = loadBatch('data/data_batch_2')
 
-    X3,Y3,y3 = loadBatch('data_batch_3')
+    X3,Y3,y3 = loadBatch('data/data_batch_3')
 
-    X4,Y4,y4 = loadBatch('data_batch_4')
+    X4,Y4,y4 = loadBatch('data/data_batch_4')
 
-    X5,Y5,y5 = loadBatch('data_batch_5')
+    X5,Y5,y5 = loadBatch('data/data_batch_5')
 
     N5 = np.shape(X5)[1]
     
-    X5new = X5[:,:N5-valSize]
+    XfiveNew = X5[:,:N5-valSize]
     Y5new = Y5[:,:N5-valSize]
     y5new = y5[:N5-valSize]
 
@@ -67,41 +69,7 @@ def loadAllFiles(valSize):
     Yval = Y5[:,N5-valSize:N5]
     yval = y5[N5-valSize:N5]
 
-    X = np.concatenate((X1,X2,X3,X4,X5new),axis=1)
-    Y = np.concatenate((Y1,Y2,Y3,Y4,Y5new),axis=1)
-    y = np.concatenate((y1,y2,y3,y4,y5new))
-    
-    XProc = preProc(X)
-    XvalProc = preProc(Xval)
-
-    training_data = list([XProc,Y,y])
-    validation_data = list([XvalProc,Yval,yval])
-
-    return training_data , validation_data
-
-
-def loadAllFiles2(valSize):
-    X1,Y1,y1 = loadBatch('data_batch_1')
-
-    X2,Y2,y2 = loadBatch('data_batch_2')
-
-    X3,Y3,y3 = loadBatch('data_batch_3')
-
-    X4,Y4,y4 = loadBatch('data_batch_4')
-
-    X5,Y5,y5 = loadBatch('data_batch_5')
-
-    N5 = np.shape(X5)[1]
-    
-    X5new = X5[:,:N5-valSize]
-    Y5new = Y5[:,:N5-valSize]
-    y5new = y5[:N5-valSize]
-
-    Xval = X5[:,N5-valSize:N5]
-    Yval = Y5[:,N5-valSize:N5]
-    yval = y5[N5-valSize:N5]
-
-    X = np.concatenate((X1,X2,X3,X4,X5new),axis=1)
+    X = np.concatenate((X1,X2,X3,X4,XfiveNew),axis=1)
     Y = np.concatenate((Y1,Y2,Y3,Y4,Y5new),axis=1)
     y = np.concatenate((y1,y2,y3,y4,y5new))
     
@@ -115,7 +83,7 @@ def loadAllFiles2(valSize):
     return Xin , Yin , yin
 
 def loadTestFiles():
-    Xtest , Ytest , ytest = loadBatch('test_batch')
+    Xtest , Ytest , ytest = loadBatch('data/test_batch')
 
     XTestProc = preProc(Xtest)
 
@@ -127,7 +95,7 @@ def loadTestFiles():
 def preProc(X):
     #from sklearn import preprocessing
     #X = preprocessing.normalize(X)
-    X = X/255
+    X = X / 255
     #Xmean = np.mean(X,1)
     #Xstd = np.std(X,1)
     #X = X - Xmean[:,None]
@@ -137,7 +105,7 @@ def preProc(X):
     return X
 
 def reduceDims(X,Y,y,redDim,redN):
-    XbatchRedDim = X[:redDim,:redN]
-    YbatchRedDim = Y[:,:redN]
-    ybatchRedDim = y[:redN]
-    return XbatchRedDim , YbatchRedDim , ybatchRedDim
+    XredDim = X[:redDim,:redN]
+    YredDim = Y[:,:redN]
+    yRedDim = y[:redN]
+    return XredDim , YredDim , yRedDim
